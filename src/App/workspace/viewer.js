@@ -89,7 +89,6 @@ class Scene extends THREE.Scene {
 
       //add
       for (const model of xnectModels) {
-        //this.add(model.skeletonHelper);
         this.add(model.limbHelper);
         this.add(model.jointHelper);
         //this.add(model.getRootBone()); // ???
@@ -105,7 +104,6 @@ class Scene extends THREE.Scene {
 
       //add
       for (const model of bvhModels) {
-        //this.add(model.skeletonHelper);
         this.add(model.limbHelper);
         this.add(model.jointHelper);
         //this.add(model.getRootBone()); // ???
@@ -145,7 +143,6 @@ class Model {
   constructor({ skeleton, clip, fps }) {
     this.skeleton = skeleton;
     this.animations = [clip];
-    //this.skeletonHelper = new THREE.SkeletonHelper(this.getRootBone());
     this.limbHelper = new LimbHelper(
       { geometry: new THREE.BufferGeometry(), material: new THREE.LineBasicMaterial({ vertexColors: true }) },
       { bones: this.skeleton.bones, color: "white" }
