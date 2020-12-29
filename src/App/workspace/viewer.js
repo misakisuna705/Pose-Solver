@@ -4,7 +4,7 @@ import { BVHLoader } from "three/examples/jsm/loaders/BVHLoader.js";
 
 import { XNectLoader } from "App/workspace/loader";
 import { PoseComparedSolver } from "App/workspace/solver";
-import { JointHelper } from "App/workspace/helper";
+import { JointHelper, LimbHelper } from "App/workspace/helper";
 
 import BVHURL1 from "assets/bvh/data_3d1.bvh";
 import BVHURL2 from "assets/bvh/data_3d2.bvh";
@@ -61,7 +61,7 @@ class Camera extends THREE.PerspectiveCamera {
 
     //this.layers.toggle(1); // this
 
-    window.addEventListener("resize", () => this.update(), false);
+    //window.addEventListener("resize", () => this.update(), false);
   }
 
   update() {
@@ -89,7 +89,8 @@ class Scene extends THREE.Scene {
 
       //add
       for (const model of xnectModels) {
-        this.add(model.skeletonHelper);
+        //this.add(model.skeletonHelper);
+        this.add(model.limbHelper);
         this.add(model.jointHelper);
         //this.add(model.getRootBone()); // ???
       }
@@ -104,13 +105,16 @@ class Scene extends THREE.Scene {
 
       //add
       for (const model of bvhModels) {
-        this.add(model.skeletonHelper);
+        //this.add(model.skeletonHelper);
+        this.add(model.limbHelper);
         this.add(model.jointHelper);
         //this.add(model.getRootBone()); // ???
       }
 
       this.add(this.poseComparedSolver.refJointHelper);
       this.add(this.poseComparedSolver.cmpJointHelper);
+      this.add(this.poseComparedSolver.refLimbHelper);
+      this.add(this.poseComparedSolver.cmpLimbHelper);
     });
 
     //const light = new THREE.DirectionalLight(0xffffff, 1.0);
@@ -141,7 +145,11 @@ class Model {
   constructor({ skeleton, clip, fps }) {
     this.skeleton = skeleton;
     this.animations = [clip];
-    this.skeletonHelper = new THREE.SkeletonHelper(this.getRootBone());
+    //this.skeletonHelper = new THREE.SkeletonHelper(this.getRootBone());
+    this.limbHelper = new LimbHelper(
+      { geometry: new THREE.BufferGeometry(), material: new THREE.LineBasicMaterial({ vertexColors: true }) },
+      { bones: this.skeleton.bones, color: "white" }
+    );
     this.jointHelper = new JointHelper({ bones: this.skeleton.bones, color: "white" });
     this.mixer = new THREE.AnimationMixer(this);
     this.counter = 0;
@@ -159,7 +167,8 @@ class Model {
       this.counter = 0;
     }
 
-    this.jointHelper.update(this.jointHelper.colors); // ???
+    this.limbHelper.update(this.limbHelper.colors);
+    this.jointHelper.update(this.jointHelper.colors);
   }
 
   getRootBone() {
