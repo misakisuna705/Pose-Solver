@@ -1,15 +1,12 @@
 import React, { Component } from "react";
-
-import Renderer from "App/workspace/viewer";
+import { Viewer } from "App/workspace/viewer";
 
 export default class Workspace extends Component {
   componentDidMount() {
-    this.viewer = new Renderer();
-
-    this.element.appendChild(this.viewer.domElement);
+    this.viewer = new Viewer({ container: this.element });
   }
 
   render() {
-    return <div ref={element => (this.element = element)} />;
+    return <div ref={(element) => (this.element = element)} />;
   }
 }
