@@ -4,92 +4,26 @@ import { JointHelper, LimbHelper } from "App/workspace/helper";
 
 class EDWSolver {
   constructor({ ref, cmp }) {
-    const refBones = ref.skeleton.bones;
-    const cmpBones = cmp.skeleton.bones;
-
-    const bufBones = this.getBoneList(refBones[0].clone(), "clip");
-    //const bufBones = ref.clipBones[0].clone();
-    //const bufBones = ref.clipBones[0].clone();
+    const bufBones = ref.clipBones;
     const bonesNum = bufBones.length;
-
     const refClip = ref.animations[0];
     const cmpClip = cmp.animations[0];
-    const framesNum = Math.min(refClip.tracks[0].times.length, cmpClip.tracks[0].times.length);
-
+    const refFramesNum = refClip.tracks[0].times.length;
+    const cmpFramesNum = cmpClip.tracks[0].times.length;
+    const framesNum = Math.min(refFramesNum, cmpFramesNum);
     const posDiff = [];
-    const refColors = [];
-    const cmpColors = [];
-    const refTracks = [];
-    const cmpTracks = [];
+    const refColorsMap = [];
+    const cmpColorsMap = [];
 
     for (const i of Array(bonesNum).keys()) posDiff[i] = [];
-    for (const i of Array(bonesNum).keys()) refColors[i] = [];
-    for (const i of Array(bonesNum).keys()) cmpColors[i] = []; /// ?
+    for (const i of Array(bonesNum).keys()) refColorsMap[i] = [];
+    for (const i of Array(bonesNum).keys()) cmpColorsMap[i] = []; /// ?
 
     for (const i of Array(framesNum).keys()) {
-      for (const j of Array(bonesNum).keys()) {
-        const vectorKeyframeTrack = refClip.tracks[j * 2 + 0];
-        const quaternionKeyframeTrack = refClip.tracks[j * 2 + 1];
+      const refPos = this.getGlobalPosition(i, bufBones, refClip);
+      const cmpPos = this.getGlobalPosition(i, bufBones, cmpClip);
 
-        bufBones[j].position.copy(
-          new THREE.Vector3(
-            vectorKeyframeTrack.values[i * 3 + 0],
-            vectorKeyframeTrack.values[i * 3 + 1],
-            vectorKeyframeTrack.values[i * 3 + 2]
-          )
-        );
-
-        bufBones[j].setRotationFromQuaternion(
-          new THREE.Quaternion(
-            quaternionKeyframeTrack.values[i * 4 + 0],
-            quaternionKeyframeTrack.values[i * 4 + 1],
-            quaternionKeyframeTrack.values[i * 4 + 2],
-            quaternionKeyframeTrack.values[i * 4 + 3]
-          )
-        );
-      }
-
-      const refPos = [];
-
-      for (const j of Array(bonesNum).keys()) {
-        refPos[j] = new THREE.Vector3();
-
-        bufBones[j].getWorldPosition(refPos[j]);
-      }
-
-      for (const j of Array(bonesNum).keys()) {
-        const vectorKeyframeTrack = cmpClip.tracks[j * 2 + 0];
-        const quaternionKeyframeTrack = cmpClip.tracks[j * 2 + 1];
-
-        bufBones[j].position.copy(
-          new THREE.Vector3(
-            vectorKeyframeTrack.values[i * 3 + 0],
-            vectorKeyframeTrack.values[i * 3 + 1],
-            vectorKeyframeTrack.values[i * 3 + 2]
-          )
-        );
-
-        bufBones[j].setRotationFromQuaternion(
-          new THREE.Quaternion(
-            quaternionKeyframeTrack.values[i * 4 + 0],
-            quaternionKeyframeTrack.values[i * 4 + 1],
-            quaternionKeyframeTrack.values[i * 4 + 2],
-            quaternionKeyframeTrack.values[i * 4 + 3]
-          )
-        );
-      }
-
-      const cmpPos = [];
-
-      for (const j of Array(bonesNum).keys()) {
-        cmpPos[j] = new THREE.Vector3();
-
-        bufBones[j].getWorldPosition(cmpPos[j]);
-      }
-
-      for (const j of Array(bonesNum).keys()) {
-        posDiff[j][i] = cmpPos[j].distanceTo(refPos[j]);
-      }
+      for (const j of Array(bonesNum).keys()) posDiff[j][i] = cmpPos[j].distanceTo(refPos[j]);
     }
 
     const maxDiff = Math.max(...Array().concat.apply([], posDiff));
@@ -98,239 +32,210 @@ class EDWSolver {
       for (const j of Array(framesNum).keys()) {
         const score = Math.min(Math.round((posDiff[i][j] / maxDiff) * 511), 511);
 
-        if (0 <= score && score <= 255) {
-          cmpColors[i][j * 3 + 0] = score / 255;
-          cmpColors[i][j * 3 + 1] = 1;
-          cmpColors[i][j * 3 + 2] = 0;
-        }
-
-        if (255 < score && score <= 511) {
-          cmpColors[i][j * 3 + 0] = 1;
-          cmpColors[i][j * 3 + 1] = (255 - (score - 256)) / 255;
-          cmpColors[i][j * 3 + 2] = 0;
-        }
-
-        //cmpColors[i][j * 3 + 0] = 0;
-        //cmpColors[i][j * 3 + 1] = 0;
-        //cmpColors[i][j * 3 + 2] = 1;
-
-        refColors[i][j * 3 + 0] = 0;
-        refColors[i][j * 3 + 1] = 1;
-        refColors[i][j * 3 + 2] = 0;
+        cmpColorsMap[i][j * 3 + 0] = 0 <= score && score <= 255 ? score / 255 : 1;
+        cmpColorsMap[i][j * 3 + 1] = 0 <= score && score <= 255 ? 1 : (255 - (score - 256)) / 255;
+        cmpColorsMap[i][j * 3 + 2] = 0;
+        refColorsMap[i][j * 3 + 0] = 0;
+        refColorsMap[i][j * 3 + 1] = 1;
+        refColorsMap[i][j * 3 + 2] = 0;
       }
     }
 
-    if (refClip.tracks[0].times.length < cmpClip.tracks[0].times.length) {
+    if (refFramesNum < cmpFramesNum) {
       for (const i of Array(bonesNum).keys()) {
-        for (let j = refClip.tracks[0].times.length; j < cmpClip.tracks[0].times.length; j++) {
-          cmpColors[i][j * 3 + 0] = 1;
-          cmpColors[i][j * 3 + 1] = 1;
-          cmpColors[i][j * 3 + 2] = 1;
+        for (let j = refFramesNum; j < cmpFramesNum; j++) {
+          cmpColorsMap[i][j * 3 + 0] = 1;
+          cmpColorsMap[i][j * 3 + 1] = 1;
+          cmpColorsMap[i][j * 3 + 2] = 1;
         }
       }
     }
 
-    if (refClip.tracks[0].times.length > cmpClip.tracks[0].times.length) {
-      for (const i of Array(bonesNum).key()) {
-        for (let j = cmpClip.tracks[0].times.length; j < refClip.tracks[0].times.length; j++) {
-          refColors[i][j * 3 + 0] = 1;
-          refColors[i][j * 3 + 1] = 1;
-          refColors[i][j * 3 + 2] = 1;
+    if (cmpFramesNum < refFramesNum) {
+      for (const i of Array(bonesNum).keys()) {
+        for (let j = cmpFramesNum; j < refFramesNum; j++) {
+          refColorsMap[i][j * 3 + 0] = 1;
+          refColorsMap[i][j * 3 + 1] = 1;
+          refColorsMap[i][j * 3 + 2] = 1;
         }
       }
     }
+
+    ref.jointHelper.insertAction(refColorsMap);
+    cmp.jointHelper.insertAction(cmpColorsMap);
 
     //const framesNum = Math.min(refClip.tracks[0].times.length, cmpClip.tracks[0].times.length);
-
-    this.refJointHelper = new JointHelper({ bones: ref.clipBones, clip: refClip, colorsMap: refColors });
-    this.cmpJointHelper = new JointHelper({ bones: cmp.clipBones, clip: cmpClip, colorsMap: cmpColors });
+    //const degree = (refQuaternion.angleTo(cmpQuaternion) * 180) / Math.PI;
   }
 
-  //const degree = (refQuaternion.angleTo(cmpQuaternion) * 180) / Math.PI;
+  getGlobalPosition(frameID, bufBones, clip) {
+    const bonesNum = bufBones.length;
+    const pos = [];
 
-  update(frame) {
-    this.refJointHelper.update(frame);
-    this.cmpJointHelper.update(frame);
-  }
+    for (const i of Array(bonesNum).keys()) {
+      const vectorKeyframeTrack = clip.tracks[i * 2 + 0];
+      const quaternionKeyframeTrack = clip.tracks[i * 2 + 1];
 
-  getBoneList(node, type) {
-    const list = [];
+      bufBones[i].position.copy(
+        new THREE.Vector3(
+          vectorKeyframeTrack.values[frameID * 3 + 0],
+          vectorKeyframeTrack.values[frameID * 3 + 1],
+          vectorKeyframeTrack.values[frameID * 3 + 2]
+        )
+      );
 
-    if (type !== "clip" || node.name !== "ENDSITE") list.push(node);
+      bufBones[i].setRotationFromQuaternion(
+        new THREE.Quaternion(
+          quaternionKeyframeTrack.values[frameID * 4 + 0],
+          quaternionKeyframeTrack.values[frameID * 4 + 1],
+          quaternionKeyframeTrack.values[frameID * 4 + 2],
+          quaternionKeyframeTrack.values[frameID * 4 + 3]
+        )
+      );
+    }
 
-    for (const bone of node.children) list.push.apply(list, this.getBoneList(bone, type));
+    for (const i of Array(bonesNum).keys()) {
+      pos[i] = new THREE.Vector3();
 
-    return list;
+      bufBones[i].getWorldPosition(pos[i]);
+    }
+
+    return pos;
   }
 }
 
-//class PoseComparedSolver {
-//constructor({ ref, cmp }) {
-//const refBones = (this.refBones = ref.skeleton.bones);
-//const cmpBones = (this.cmpBones = cmp.skeleton.bones);
-//const bufBones = (this.bufBones = this.getBoneList(refBones[0].clone(), "buf"));
-//const clipBones = this.getBoneList(bufBones[0].clone(), "clip");
-//const refClip = ref.animations[0];
-//const cmpClip = cmp.animations[0];
-//const framesNum = Math.min(refClip.tracks[0].times.length, cmpClip.tracks[0].times.length);
-//const initGlobalPosDiffs = [];
-//const colors = [];
+class DTWSolver {
+  constructor({ ref, cmp }) {
+    const bufBones = ref.clipBones;
+    const bonesNum = bufBones.length;
+    const refClip = ref.animations[0];
+    const cmpClip = cmp.animations[0];
+    const refFramesNum = refClip.tracks[0].times.length;
+    const cmpFramesNum = cmpClip.tracks[0].times.length;
+    const refFramesMap = this.getGlobalPosesMap(refFramesNum, bufBones, refClip);
+    const cmpFramesMap = this.getGlobalPosesMap(cmpFramesNum, bufBones, cmpClip);
+    const refFramesSum = this.getFramesSum(bonesNum, refFramesNum, refFramesMap);
+    const cmpFramesSum = this.getFramesSum(bonesNum, cmpFramesNum, cmpFramesMap);
+    const matrix = this.getMatrix(refFramesNum, cmpFramesNum, refFramesSum, cmpFramesSum);
+    const path = (this.path = this.getPath(refFramesNum, cmpFramesNum, matrix));
+  }
 
-//for (const i of Array(framesNum).keys()) initGlobalPosDiffs[i] = [];
-//for (const i of Array(clipBones.length).keys()) colors[i] = [];
+  getGlobalPosesMap(framesNum, bufBones, clip) {
+    const bonesNum = bufBones.length;
+    const framesMap = [];
 
-//for (const i of Array(framesNum).keys()) {
-//this.parseInitLocalTrans(refClip, clipBones, i);
+    for (const i of Array(bonesNum).keys()) framesMap[i] = [];
 
-//const refGlobalPos = this.parseInitGlobalPos(clipBones);
+    for (const i of Array(framesNum).keys()) {
+      for (const j of Array(bonesNum).keys()) {
+        const vectorKeyframeTrack = clip.tracks[j * 2 + 0];
+        const quaternionKeyframeTrack = clip.tracks[j * 2 + 1];
 
-//this.parseInitLocalTrans(cmpClip, clipBones, i);
+        bufBones[j].position.copy(
+          new THREE.Vector3(
+            vectorKeyframeTrack.values[i * 3 + 0],
+            vectorKeyframeTrack.values[i * 3 + 1],
+            vectorKeyframeTrack.values[i * 3 + 2]
+          )
+        );
 
-//const cmpGlobalPos = this.parseInitGlobalPos(clipBones);
+        bufBones[j].setRotationFromQuaternion(
+          new THREE.Quaternion(
+            quaternionKeyframeTrack.values[i * 4 + 0],
+            quaternionKeyframeTrack.values[i * 4 + 1],
+            quaternionKeyframeTrack.values[i * 4 + 2],
+            quaternionKeyframeTrack.values[i * 4 + 3]
+          )
+        );
+      }
 
-//initGlobalPosDiffs[i] = this.parseInitGlobalPosDiff(refGlobalPos, cmpGlobalPos);
-//}
+      for (const j of Array(bonesNum).keys()) {
+        framesMap[j][i] = new THREE.Vector3();
 
-//this.maxGlobalPosDiff = Math.max(...Array().concat.apply([], initGlobalPosDiffs));
+        bufBones[j].getWorldPosition(framesMap[j][i]);
+      }
+    }
 
-//this.refJointHelper = new JointHelper({ bones: refBones, color: "blue" });
-//this.cmpJointHelper = new JointHelper({ bones: cmpBones, color: "lime" });
+    return framesMap;
+  }
 
-//this.refLimbHelper = new LimbHelper(
-//{ geometry: new THREE.BufferGeometry(), material: new THREE.LineBasicMaterial({ vertexColors: true }) },
-//{ bones: refBones, color: "blue" }
-//);
-//this.cmpLimbHelper = new LimbHelper(
-//{ geometry: new THREE.BufferGeometry(), material: new THREE.LineBasicMaterial({ vertexColors: true }) },
-//{ bones: cmpBones, color: "lime" }
-//);
-//}
+  getFramesSum(bonesNum, framesNum, framesMap) {
+    const framesSum = [];
 
-//update() {
-//const globalPosDiffs = this.parseGlobalPosDiffs();
-//const jointColors = this.parseJointColor(globalPosDiffs);
-//const limbColors = this.parseLimbColor(globalPosDiffs);
+    for (const i of Array(framesNum).keys()) {
+      for (const j of Array(bonesNum).keys()) {
+        framesSum[i] = new THREE.Vector3();
 
-//this.refJointHelper.update(this.refJointHelper.colors);
-//this.cmpJointHelper.update(jointColors);
+        framesSum[i].add(framesMap[j][i]);
+      }
+    }
 
-//this.refLimbHelper.update(this.refLimbHelper.colors);
-//this.cmpLimbHelper.update(limbColors);
-//}
+    return framesSum;
+  }
 
-//getBoneList(node, type) {
-//const list = [];
+  getMatrix(refFramesNum, cmpFramesNum, refFramesSum, cmpFramesSum) {
+    const matrix = [];
 
-//if (type !== "clip" || node.name !== "ENDSITE") list.push(node);
+    for (const i of Array(refFramesNum).keys()) {
+      matrix[i] = [];
 
-//for (const bone of node.children) list.push.apply(list, this.getBoneList(bone, type));
+      for (const j of Array(cmpFramesNum).keys()) {
+        let cost = Infinity;
 
-//return list;
-//}
+        if (i > 0) {
+          cost = Math.min(cost, matrix[i - 1][j]);
+          if (j > 0) cost = Math.min(cost, Math.min(matrix[i - 1][j - 1], matrix[i][j - 1]));
+        } else {
+          if (j > 0) cost = Math.min(cost, matrix[i][j - 1]);
+          else cost = 0;
+        }
 
-//parseInitLocalTrans(clipion, bones, frameID) {
-//for (const i of Array(bones.length).keys()) {
-//const trackVector = clipion.tracks[i * 2 + 0];
-//const trackQuaternion = clipion.tracks[i * 2 + 1];
+        matrix[i][j] = cost + cmpFramesSum[j].distanceTo(refFramesSum[i]);
+      }
+    }
 
-//bones[i].position.copy(
-//new THREE.Vector3(
-//trackVector.values[frameID * 3 + 0],
-//trackVector.values[frameID * 3 + 1],
-//trackVector.values[frameID * 3 + 2]
-//)
-//);
+    return matrix;
+  }
 
-//bones[i].setRotationFromQuaternion(
-//new THREE.Quaternion(
-//trackQuaternion.values[frameID * 4 + 0],
-//trackQuaternion.values[frameID * 4 + 1],
-//trackQuaternion.values[frameID * 4 + 2],
-//trackQuaternion.values[frameID * 4 + 3]
-//)
-//);
-//}
-//}
+  getPath(refFramesNum, cmpFramesNum, matrix) {
+    let i = refFramesNum - 1;
+    let j = cmpFramesNum - 1;
 
-//parseInitGlobalPos(bones) {
-//const globalPos = [];
+    let path = (this.path = [[i, j]]);
 
-//for (const i of Array(bones.length).keys()) {
-//globalPos[i] = new THREE.Vector3();
+    while (i > 0 || j > 0) {
+      if (i > 0) {
+        if (j > 0) {
+          if (matrix[i - 1][j] < matrix[i - 1][j - 1]) {
+            if (matrix[i - 1][j] < matrix[i][j - 1]) {
+              path.push([i - 1, j]);
+              i--;
+            } else {
+              path.push([i, j - 1]);
+              j--;
+            }
+          } else {
+            if (matrix[i - 1][j - 1] < matrix[i][j - 1]) {
+              path.push([i - 1, j - 1]);
+              i--;
+              j--;
+            } else {
+              path.push([i, j - 1]);
+              j--;
+            }
+          }
+        } else {
+          path.push([i - 1, j]);
+          i--;
+        }
+      } else {
+        path.push([i, j - 1]);
+        j--;
+      }
+    }
 
-//bones[i].getWorldPosition(globalPos[i]);
-//}
+    return path.reverse();
+  }
+}
 
-//return globalPos;
-//}
-
-//parseInitGlobalPosDiff(refGlobalPos, cmpGlobalPos) {
-//const globalPosDiffs = [];
-
-//for (const i of Array(refGlobalPos.length).keys()) globalPosDiffs[i] = cmpGlobalPos[i].distanceTo(refGlobalPos[i]);
-
-//return globalPosDiffs;
-//}
-
-//parseGlobalPosDiffs() {
-//const globalPosDiffs = [];
-
-//for (const i of Array(this.bufBones.length).keys()) {
-//const refGlobalPos = new THREE.Vector3();
-//const cmpGlobalPos = new THREE.Vector3();
-
-//this.refBones[i].getWorldPosition(refGlobalPos);
-//this.cmpBones[i].getWorldPosition(cmpGlobalPos);
-
-//globalPosDiffs[i] = cmpGlobalPos.distanceTo(refGlobalPos);
-//}
-
-//return globalPosDiffs;
-//}
-
-//parseJointColor(globalPosDiffs) {
-//const colors = [];
-
-//for (const i of Array(this.bufBones.length).keys()) {
-//const count = Math.min(Math.round((globalPosDiffs[i] / this.maxGlobalPosDiff) * 511), 511);
-
-//let color;
-
-//if (0 <= count && count <= 255) color = new THREE.Color("rgb(" + count + ", 255, 0)");
-//if (255 < count && count <= 511) color = new THREE.Color("rgb(255, " + (255 - (count - 256)) + ", 0)");
-
-//colors[i] = color;
-//}
-
-//return colors;
-//}
-
-//parseLimbColor(globalPosDiffs) {
-//const bones = this.bufBones;
-//const colors = [];
-
-//for (const i of Array(bones.length).keys()) {
-//const count = Math.min(Math.round((globalPosDiffs[i] / this.maxGlobalPosDiff) * 511), 511);
-
-//let rgb;
-
-//if (0 <= count && count <= 255) rgb = new THREE.Vector3(count, 255, 0);
-//if (255 < count && count <= 511) rgb = new THREE.Vector3(255, 255 - (count - 256), 0);
-
-//bones[i].position.copy(rgb);
-//}
-
-//for (const bone of bones) {
-//const parent = bone.parent;
-
-//if (parent) {
-//colors.push(new THREE.Color("rgb(" + bone.position.x + ", " + bone.position.y + ", " + bone.position.z + ")"));
-//colors.push(new THREE.Color("rgb(" + parent.position.x + ", " + parent.position.y + ", " + parent.position.z + ")"));
-//}
-//}
-
-//return colors;
-//}
-//}
-
-export { EDWSolver };
+export { EDWSolver, DTWSolver };

@@ -3,13 +3,13 @@ import { GUI } from "three/examples/jsm/libs/dat.gui.module.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { BVHLoader } from "three/examples/jsm/loaders/BVHLoader.js";
 
-import { XNectLoader } from "App/workspace/loader";
-import { EDWSolver } from "App/workspace/solver";
+//import { XNectLoader } from "App/workspace/loader";
+import { EDWSolver, DTWSolver } from "App/workspace/solver";
 import { JointHelper, LimbHelper } from "App/workspace/helper";
 
 import BVHURL1 from "assets/bvh/data_3d1.bvh";
 import BVHURL2 from "assets/bvh/data_3d2.bvh";
-import XNECTURL from "assets/xnect/post_raw3D.txt";
+//import XNECTURL from "assets/xnect/post_raw3D.txt";
 
 class Viewer {
   constructor({ container }) {
@@ -23,9 +23,9 @@ class Viewer {
     container.appendChild(canvas);
 
     Promise.all(bvhsLoaded).then((results) => {
-      this.renderer = new Renderer({ canvas: canvas }, { bvhs: results });
+      const controller = (this.controller = new Controller({ canvas: canvas, bvhs: results }));
 
-      this.render(0);
+      controller.init(0, "lapScene", "freeCam", "EDW", "all");
     });
   }
 
@@ -34,98 +34,230 @@ class Viewer {
       loader.load(url, resolve);
     });
   }
+}
 
-  render(frame) {
-    this.renderer.update(frame);
+class Controller extends GUI {
+  constructor({ canvas, bvhs }) {
+    super();
+
+    // renderer
+    const renderer = (this.renderer = new Renderer({ canvas: canvas }));
+
+    // camera
+    const camera = (this.camera = new Camera({ fov: 60, aspect: 640 / 360, near: 0.1, far: 50000 }));
+
+    // orbit
+    const orbit = (this.orbit = new OrbitControls(camera, canvas));
+
+    // model
+    const refModel = (this.refModel = new Model(
+      { geometry: new THREE.BufferGeometry(), material: new THREE.MeshNormalMaterial({ skinning: true }) },
+      { skeleton: bvhs[0].skeleton, clip: bvhs[0].clip }
+    ));
+    const cmpModel = (this.cmpModel = new Model(
+      { geometry: new THREE.BufferGeometry(), material: new THREE.MeshNormalMaterial({ skinning: true }) },
+      { skeleton: bvhs[1].skeleton, clip: bvhs[1].clip }
+    ));
+
+    // solver
+    this.edwSolver = new EDWSolver({ ref: refModel, cmp: cmpModel });
+    this.dtwSolver = new DTWSolver({ ref: refModel, cmp: cmpModel });
+
+    // scene
+    const lapScene = (this.lapScene = new Scene());
+    const refScene = (this.refScene = new Scene());
+    const cmpScene = (this.cmpScene = new Scene());
+
+    // controller
+    const playerConfs = { edwFrame: 0, dtwFrame: 0 };
+    const sceneConfs = (this.sceneConfs = { lapScene: true, sepScene: false });
+    const cameraConfs = (this.cameraConfs = {
+      freeCam: true,
+      frontCam: false,
+      backCam: false,
+      topCam: false,
+      downCam: false,
+      leftCam: false,
+      rightCam: false,
+    });
+    const solverConfs = (this.solverConfs = { EDW: true, DTW: false });
+    const selectConfs = (this.selectConfs = { all: true, part: false });
+    const btnConfs = {
+      resolve: () => {
+        console.log("clicked");
+      },
+    };
+    const panel = this.addFolder("Panel");
+
+    const edwFrame = panel.add(playerConfs, "edwFrame", 0, 300, 1);
+    const dtwFrame = panel.add(playerConfs, "dtwFrame", 0, this.dtwSolver.path.length - 1, 1);
+
+    const sceneFolder = panel.addFolder("Scene Mode");
+    const cameraFolder = panel.addFolder("Camera Mode");
+    const solverFolder = panel.addFolder("Solver Mode");
+    const selectFolder = panel.addFolder("Select Mode");
+
+    panel.add(btnConfs, "resolve").name("recalculate");
+
+    const sceneModes = [
+      sceneFolder.add(sceneConfs, "lapScene").name("overlap scene"),
+      sceneFolder.add(sceneConfs, "sepScene").name("seperate scene"),
+    ];
+    const cameraModes = [
+      cameraFolder.add(cameraConfs, "freeCam").name("free camera"),
+      cameraFolder.add(cameraConfs, "frontCam").name("front camera"),
+      cameraFolder.add(cameraConfs, "backCam").name("back camera"),
+      cameraFolder.add(cameraConfs, "leftCam").name("left camera"),
+      cameraFolder.add(cameraConfs, "rightCam").name("right camera"),
+      cameraFolder.add(cameraConfs, "topCam").name("top camera"),
+      cameraFolder.add(cameraConfs, "downCam").name("down camera"),
+    ];
+    const solverModes = [
+      solverFolder.add(solverConfs, "EDW").name("Euclidean Distance Warping"),
+      solverFolder.add(solverConfs, "DTW").name("Dynamic Time Warping"),
+    ];
+    const selectModes = [
+      selectFolder.add(selectConfs, "all").name("full skeleton"),
+      selectFolder.add(selectConfs, "part").name("partial bones"),
+    ];
+
+    panel.open();
+    sceneFolder.open();
+    cameraFolder.open();
+    solverFolder.open();
+    selectFolder.open();
+
+    // listener
+    edwFrame.listen().onChange((frame) => this.updateModel(1, "EDW", frame));
+    dtwFrame.listen().onChange((frame) => this.updateModel(1, "DTW", frame));
+    for (const mode of sceneModes) mode.listen().onChange(() => this.updateScene(mode.property));
+    for (const mode of cameraModes) mode.listen().onChange(() => this.updateCamera(mode.property));
+
+    //for (const mode of solverModes)
+    //mode.listen().onChange(() => this.update(frame.getValue(), undefined, undefined, mode.property, undefined));
+
+    //for (const mode of selectModes)
+    //mode.listen().onChange(() => this.update(frame.getValue(), undefined, undefined, undefined, mode.property));
+
+    orbit.addEventListener("change", () => renderer.update(lapScene, refScene, cmpScene, camera), false);
+    window.addEventListener("resize", () => this.updateCamera(), false);
+  }
+
+  init(frame, sceneMode, cameraMode, solverMode, selectMode) {
+    this.updateMode(solverMode, this.solverConfs);
+    this.updateMode(selectMode, this.selectConfs);
+
+    this.updateCamera(cameraMode);
+    this.updateModel(1, "EDW", frame);
+    this.updateScene(sceneMode);
+  }
+
+  updateCamera(cameraMode) {
+    this.updateMode(cameraMode, this.cameraConfs);
+
+    this.camera.update(this.renderer.domElement, cameraMode);
+    this.orbit.update();
+
+    this.renderer.update(this.lapScene, this.refScene, this.cmpScene, this.camera);
+  }
+
+  updateModel(actionID, solver, frame) {
+    const refFrame = solver === "DTW" ? this.dtwSolver.path[frame][0] : frame;
+    const cmpFrame = solver === "DTW" ? this.dtwSolver.path[frame][1] : frame;
+
+    this.refModel.update(actionID, refFrame);
+    this.cmpModel.update(actionID, cmpFrame);
+
+    this.renderer.update(this.lapScene, this.refScene, this.cmpScene, this.camera);
+  }
+
+  updateScene(sceneMode) {
+    const refModel = this.refModel;
+    const cmpModel = this.cmpModel;
+    const lapScene = this.lapScene;
+    const refScene = this.refScene;
+    const cmpScene = this.cmpScene;
+
+    this.updateMode(sceneMode, this.sceneConfs);
+
+    if (sceneMode === "lapScene") {
+      //this.add(model); // ???
+      //this.add(model.getRootBone()); // ???
+      lapScene.update(refModel);
+      lapScene.update(cmpModel);
+
+      refScene.visible = false;
+      cmpScene.visible = false;
+    } else if (sceneMode === "sepScene") {
+      refScene.update(refModel);
+      cmpScene.update(cmpModel);
+
+      lapScene.visible = false;
+    }
+
+    this.renderer.update(this.lapScene, this.refScene, this.cmpScene, this.camera);
+  }
+
+  updateMode(mode, confs) {
+    for (const conf in confs) confs[conf] = conf === mode ? true : false;
   }
 }
 
 class Renderer extends THREE.WebGLRenderer {
-  constructor(parameters, { bvhs }) {
+  constructor(parameters) {
     super(parameters);
 
-    const refScene = (this.refScene = new Scene({ bvh: bvhs[0] }));
-    const cmpScene = (this.cmpScene = new Scene({ bvh: bvhs[1] }));
-    this.camera = new Camera({ fov: 60, aspect: 640 / 360, near: 0.1, far: 50000 }, { canvas: this.domElement });
-    this.clock = new THREE.Clock();
-    const control = new OrbitControls(this.camera, this.domElement);
-
-    //this.antialias = true;
-    //this.alpha = true;
-    //this.setPixelRatio(window.devicePixelRatio);
-    //this.autoClear = false;
     this.setScissorTest(true);
+    this.autoClear = false;
 
-    //this.control.keyPanSpeed = 60000;
-    //this.control.rotateSpeed = Math.PI / 20;
-    //this.control.minDistance = 300;
-    //this.control.maxDistance = 700;
-
-    const refModel = refScene.model;
-    const cmpModel = cmpScene.model;
-
-    this.edwSolver = new EDWSolver({ ref: refModel, cmp: cmpModel });
-    this.refScene.add(this.edwSolver.refJointHelper);
-    this.cmpScene.add(this.edwSolver.cmpJointHelper);
-
-    const refMixer = refModel.mixer;
-    const cmpMixer = cmpModel.mixer;
-    //bvhModels[1].mixer.clipAction(bvhModels[1].animations[0]).syncWith(bvhModels[0].mixer.clipAction(bvhModels[0].animations[0]));
-
-    const player = {
-      curFrame: 0,
-    };
-
-    const panel = new GUI();
-    const player1 = panel.addFolder("EDW Comparing Player");
-    const curFrame = player1.add(player, "curFrame", 0, 173, 1);
-    const player2 = panel.addFolder("DTW Comparing  player");
-
-    window.addEventListener("resize", () => this.update(curFrame.getValue()), false);
-    control.addEventListener("change", () => this.update(curFrame.getValue()), false);
-    curFrame.onChange((frame) => this.update(frame));
+    // syncWith
   }
 
-  update(frame) {
+  update(lapScene, refScene, cmpScene, camera) {
     const canvas = this.domElement;
-    const camera = this.camera;
-    const refScene = this.refScene;
-    const cmpScene = this.cmpScene;
-
-    refScene.update(frame);
-    cmpScene.update(frame);
-    this.edwSolver.update(frame);
-    camera.update(canvas);
 
     this.setSize(window.innerWidth, window.innerHeight);
 
     const { left, right, top, bottom, width, height } = canvas.getBoundingClientRect();
 
-    this.setScissor(left, top, width / 2, height);
-    this.setViewport(left, top, width / 2, height);
-    this.render(this.refScene, camera);
-
-    this.setScissor(left + width / 2, top, width / 2, height);
-    this.setViewport(left + width / 2, top, width / 2, height);
-    this.render(this.cmpScene, camera);
+    this.updateView(lapScene, camera, left, top, width, height);
+    this.updateView(refScene, camera, left, top, width / 2, height);
+    this.updateView(cmpScene, camera, left + width / 2, top, width / 2, height);
 
     //requestAnimationFrame(() => this.update());
+  }
+
+  updateView(scene, camera, left, top, right, bottom) {
+    this.setScissor(left, top, right, bottom);
+    this.setViewport(left, top, right, bottom);
+    this.render(scene, camera);
   }
 }
 
 class Camera extends THREE.PerspectiveCamera {
-  constructor({ fov, aspect, near, far }, { canvas }) {
+  constructor({ fov, aspect, near, far }) {
     super(fov, aspect, near, far);
 
-    this.position.set(0, 0, -1);
-    this.lookAt(new THREE.Vector3(0, 0, 1));
+    this.position.set(0, 100, 300);
 
-    this.layers.enable(0); // enabled by default
-    this.layers.enable(1);
+    //this.layers.enable(0); // enabled by default
+
+    //this.layers.disable(1);
+
     //this.layers.toggle(1); // this
   }
 
-  update(canvas) {
+  update(canvas, mode) {
+    const position = this.position;
+
+    if (mode === "freeCam") position.set(0, 100, 300);
+    if (mode === "frontCam") position.set(0, 100, 300);
+    if (mode === "backCam") position.set(0, 100, -300);
+    if (mode === "leftCam") position.set(-300, 100, 0);
+    if (mode === "rightCam") position.set(300, 100, 0);
+    if (mode === "topCam") position.set(0, 300, 0);
+    if (mode === "downCam") position.set(0, -300, 0);
+
     this.aspect = canvas.clientWidth / canvas.clientHeight;
 
     this.updateProjectionMatrix();
@@ -133,29 +265,17 @@ class Camera extends THREE.PerspectiveCamera {
 }
 
 class Scene extends THREE.Scene {
-  constructor({ bvh }) {
+  constructor() {
     super();
 
-    const model = (this.model = new Model(
-      { geometry: new THREE.BufferGeometry(), material: new THREE.MeshNormalMaterial({ skinning: true }) },
-      { skeleton: bvh.skeleton, clip: bvh.clip }
-    ));
-
-    //add
-    //this.add(model);
-    this.add(model.limbHelper);
-    //this.add(model.jointHelper);
-    //this.add(model.getRootBone()); // ???
-
-    //const light = new THREE.DirectionalLight(0xffffff, 1.0);
-    //this.add(light);
-
     this.add(new THREE.GridHelper(10000, 10));
-    //this.background = new THREE.Color(0xeeeeee);
   }
 
-  update(frame) {
-    this.model.update(frame);
+  update(model) {
+    this.add(model.jointHelper);
+    this.add(model.limbHelper);
+
+    this.visible = true;
   }
 }
 
@@ -173,17 +293,17 @@ class Model extends THREE.SkinnedMesh {
       { bones: this.skeleton.bones, color: "white" }
     );
 
-    //this.jointHelper = new JointHelper({ bones: this.clipBones, clip: this.animations[0] });
+    this.jointHelper = new JointHelper({ bones: this.clipBones, clip: this.animations[0] });
 
     this.mixer = new THREE.AnimationMixer(this);
 
     this.mixer.clipAction(this.animations[0]).play();
   }
 
-  update(frame) {
+  update(actionID, frame) {
     this.mixer.setTime(this.animations[0].tracks[0].times[frame]);
+    this.jointHelper.update(actionID, frame);
     this.limbHelper.update(this.limbHelper.colors);
-    //this.jointHelper.update(frame);
   }
 
   //getRootBone() {

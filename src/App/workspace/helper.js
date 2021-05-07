@@ -1,79 +1,115 @@
 import * as THREE from "three/build/three.module.js";
 
 class JointHelper extends THREE.Group {
-  constructor({ bones, clip, colorsMap }) {
+  constructor({ bones, clip }) {
     super();
 
-    const clipTracks = clip.tracks;
-    const bonesNum = clipTracks.length / 2;
-    const clipTimes = clipTracks[0].times;
-    const framesNum = clipTimes.length;
-
     const joints = (this.joints = []);
-    const tracks = [];
+    const mixer = (this.mixer = new THREE.AnimationMixer(this));
+    const actions = (this.actions = []);
     const geometry = new THREE.SphereBufferGeometry(3, 10, 10);
 
-    for (let i = 0; i < bonesNum; i++) {
-      joints[i] = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial());
-      joints[i].name = bones[i].name;
-    }
+    this.clip = clip;
 
+    for (const bone of bones) joints.push(this.createJoint(geometry, bone));
     for (const joint of joints) this.add(joint);
 
-    this.makeJointTree(bones[0], this.joints[0], "clip");
+    this.createJointTree(bones[0], joints[0], "clip");
+    this.insertAction(this.createColorsMap(1, 1, 1));
 
-    let colors = [];
+    const curAction = (this.curAction = actions[0]);
 
-    for (const i of Array(bonesNum).keys()) colors[i] = [];
-
-    if (!colorsMap) {
-      for (const i of Array(bonesNum).keys()) {
-        for (const j of Array(framesNum).keys()) {
-          colors[i][j * 3 + 0] = 1;
-          colors[i][j * 3 + 1] = 1;
-          colors[i][j * 3 + 2] = 0;
-        }
-      }
-    } else {
-      colors = colorsMap;
-    }
-
-    for (const i of Array(bonesNum).keys()) {
-      tracks[i * 3 + 0] = new THREE.VectorKeyframeTrack(
-        this.joints[i].name + ".position",
-        clipTimes,
-        clipTracks[i * 2 + 0].values
-      );
-      tracks[i * 3 + 1] = new THREE.QuaternionKeyframeTrack(
-        this.joints[i].name + ".quaternion",
-        clipTimes,
-        clipTracks[i * 2 + 1].values
-      );
-      tracks[i * 3 + 2] = new THREE.ColorKeyframeTrack(this.joints[i].name + ".material.color", clipTimes, colors[i]);
-    }
-
-    console.log(tracks);
-
-    this.animations = [new THREE.AnimationClip("jointsAnimation", -1, tracks)];
-
-    this.mixer = new THREE.AnimationMixer(this);
-
-    this.mixer.clipAction(this.animations[0]).play();
+    curAction.play();
   }
 
-  update(frame) {
-    this.mixer.setTime(this.animations[0].tracks[0].times[frame]);
+  update(actionID, frame) {
+    const actions = this.actions;
+    const preAction = this.curAction;
+    const times = this.clip.tracks[0].times;
+    const framesNum = times.length;
+
+    if (actions[actionID] != preAction) {
+      preAction.stop();
+
+      const curAction = (this.curAction = actions[actionID]);
+
+      curAction.play();
+    }
+
+    const keyframe = frame < framesNum ? frame : framesNum - 1;
+    //const keyframe = frame < framesNum ? frame : frame;
+    //const keyframe = frame < framesNum ? framesNum - 1 : framesNum - 1;
+
+    //console.log(frame);
+    //console.log(keyframe);
+
+    //if (frame >= framesNum) {
+    //console.log(frame);
+    //console.log(keyframe);
+    //}
+
+    this.mixer.setTime(this.clip.tracks[0].times[keyframe]);
   }
 
-  makeJointTree(bone, joint, type) {
+  createJoint(geometry, bone) {
+    const joint = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial());
+
+    joint.name = bone.name;
+
+    return joint;
+  }
+
+  createJointTree(bone, joint) {
     const boneChildren = bone.children;
     const joints = this.joints;
 
     for (const boneChild of boneChildren)
       for (const jointChild of joints)
-        if (boneChild.name === jointChild.name) joint.add(this.makeJointTree(boneChild, jointChild));
+        if (boneChild.name === jointChild.name) joint.add(this.createJointTree(boneChild, jointChild));
 
     return joint;
+  }
+
+  createColorsMap(r, g, b) {
+    const jointsNum = this.joints.length;
+    const framesNum = this.clip.tracks[0].times.length;
+    const colorsMap = [];
+
+    for (const i of Array(jointsNum).keys()) {
+      colorsMap[i] = [];
+
+      for (const j of Array(framesNum).keys()) {
+        colorsMap[i][j * 3 + 0] = r;
+        colorsMap[i][j * 3 + 1] = g;
+        colorsMap[i][j * 3 + 2] = b;
+      }
+    }
+
+    return colorsMap;
+  }
+
+  createAnimation(colorsMap) {
+    const joints = this.joints;
+    const jointsNum = joints.length;
+    const clipTracks = this.clip.tracks;
+    const clipTimes = clipTracks[0].times;
+    const tracks = [];
+
+    for (const i of Array(jointsNum).keys()) {
+      tracks[i * 3 + 0] = new THREE.VectorKeyframeTrack(joints[i].name + ".position", clipTimes, clipTracks[i * 2 + 0].values);
+      tracks[i * 3 + 1] = new THREE.QuaternionKeyframeTrack(
+        joints[i].name + ".quaternion",
+        clipTimes,
+        clipTracks[i * 2 + 1].values
+      );
+      tracks[i * 3 + 2] = new THREE.ColorKeyframeTrack(this.joints[i].name + ".material.color", clipTimes, colorsMap[i]);
+    }
+
+    return new THREE.AnimationClip("jointsAnimation", -1, tracks);
+  }
+
+  insertAction(colorsMap) {
+    this.actions.push(this.mixer.clipAction(this.createAnimation(colorsMap)));
   }
 }
 
@@ -130,48 +166,5 @@ class LimbHelper extends THREE.LineSegments {
     }
   }
 }
-
-//class JointHelper extends THREE.Group {
-//constructor({ bones, color }) {
-//super();
-
-//const joints = (this.joints = []);
-//const colors = (this.colors = []);
-//const geometry = new THREE.SphereBufferGeometry(3, 10, 10);
-
-//for (const bone of bones) {
-//const material = new THREE.MeshBasicMaterial();
-
-//colors.push(new THREE.Color(color));
-//joints.push(new Joint({ geometry: geometry, material: material }, { bone: bone, color: color }));
-//}
-
-//for (const joint of joints) this.add(joint);
-//}
-
-//update(colors) {
-//for (const i of Array(this.joints.length).keys()) this.children[i].update(colors[i]);
-//}
-//}
-
-//class Joint extends THREE.Mesh {
-//constructor({ geometry, material }, { bone, color }) {
-//super(geometry, material);
-
-//this.bone = bone;
-//this.bone.getWorldPosition(this.position);
-//this.quaternion.copy(this.bone.quaternion);
-//this.material.color.setStyle(color);
-//}
-
-//update(color) {
-//const bone = this.bone;
-
-//bone.getWorldPosition(this.position);
-
-//this.quaternion.copy(bone.quaternion);
-//this.material.color.setRGB(color.r, color.g, color.b);
-//}
-//}
 
 export { JointHelper, LimbHelper };
