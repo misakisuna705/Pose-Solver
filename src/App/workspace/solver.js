@@ -1,7 +1,5 @@
 import * as THREE from "three/build/three.module.js";
 
-import { JointHelper, LimbHelper } from "App/workspace/helper";
-
 class EDWSolver {
   constructor({ ref, cmp }) {
     const bufBones = ref.clipBones;
@@ -68,6 +66,9 @@ class EDWSolver {
     //const degree = (refQuaternion.angleTo(cmpQuaternion) * 180) / Math.PI;
   }
 
+  update() {
+  }
+
   getGlobalPosition(frameID, bufBones, clip) {
     const bonesNum = bufBones.length;
     const pos = [];
@@ -117,7 +118,11 @@ class DTWSolver {
     const refFramesSum = this.getFramesSum(bonesNum, refFramesNum, refFramesMap);
     const cmpFramesSum = this.getFramesSum(bonesNum, cmpFramesNum, cmpFramesMap);
     const matrix = this.getMatrix(refFramesNum, cmpFramesNum, refFramesSum, cmpFramesSum);
-    const path = (this.path = this.getPath(refFramesNum, cmpFramesNum, matrix));
+
+    this.path = this.getPath(refFramesNum, cmpFramesNum, matrix);
+  }
+
+  update() {
   }
 
   getGlobalPosesMap(framesNum, bufBones, clip) {

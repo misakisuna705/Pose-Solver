@@ -89,15 +89,15 @@ class Controller extends GUI {
     };
     const panel = this.addFolder("Panel");
 
-    const edwFrame = panel.add(playerConfs, "edwFrame", 0, 300, 1);
-    const dtwFrame = panel.add(playerConfs, "dtwFrame", 0, this.dtwSolver.path.length - 1, 1);
-
     const sceneFolder = panel.addFolder("Scene Mode");
     const cameraFolder = panel.addFolder("Camera Mode");
-    const solverFolder = panel.addFolder("Solver Mode");
+    //const solverFolder = panel.addFolder("Solver Mode");
     const selectFolder = panel.addFolder("Select Mode");
+    const playerFolder = panel.addFolder("Player");
 
-    panel.add(btnConfs, "resolve").name("recalculate");
+    const edwFrame = playerFolder.add(playerConfs, "edwFrame", 0, 300, 1);
+    const dtwFrame = playerFolder.add(playerConfs, "dtwFrame", 0, this.dtwSolver.path.length - 1, 1);
+    playerFolder.add(btnConfs, "resolve").name("recalculate");
 
     const sceneModes = [
       sceneFolder.add(sceneConfs, "lapScene").name("overlap scene"),
@@ -112,10 +112,10 @@ class Controller extends GUI {
       cameraFolder.add(cameraConfs, "topCam").name("top camera"),
       cameraFolder.add(cameraConfs, "downCam").name("down camera"),
     ];
-    const solverModes = [
-      solverFolder.add(solverConfs, "EDW").name("Euclidean Distance Warping"),
-      solverFolder.add(solverConfs, "DTW").name("Dynamic Time Warping"),
-    ];
+    //const solverModes = [
+    //solverFolder.add(solverConfs, "EDW").name("Euclidean Distance Warping"),
+    //solverFolder.add(solverConfs, "DTW").name("Dynamic Time Warping"),
+    //];
     const selectModes = [
       selectFolder.add(selectConfs, "all").name("full skeleton"),
       selectFolder.add(selectConfs, "part").name("partial bones"),
@@ -124,8 +124,9 @@ class Controller extends GUI {
     panel.open();
     sceneFolder.open();
     cameraFolder.open();
-    solverFolder.open();
+    //solverFolder.open();
     selectFolder.open();
+    playerFolder.open();
 
     // listener
     edwFrame.listen().onChange((frame) => this.updateModel(1, "EDW", frame));

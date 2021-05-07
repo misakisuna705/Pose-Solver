@@ -5,11 +5,11 @@ class JointHelper extends THREE.Group {
     super();
 
     const joints = (this.joints = []);
-    const mixer = (this.mixer = new THREE.AnimationMixer(this));
     const actions = (this.actions = []);
     const geometry = new THREE.SphereBufferGeometry(3, 10, 10);
 
     this.clip = clip;
+    this.mixer = new THREE.AnimationMixer(this);
 
     for (const bone of bones) joints.push(this.createJoint(geometry, bone));
     for (const joint of joints) this.add(joint);
@@ -28,7 +28,7 @@ class JointHelper extends THREE.Group {
     const times = this.clip.tracks[0].times;
     const framesNum = times.length;
 
-    if (actions[actionID] != preAction) {
+    if (actions[actionID] !== preAction) {
       preAction.stop();
 
       const curAction = (this.curAction = actions[actionID]);
