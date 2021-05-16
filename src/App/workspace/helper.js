@@ -15,40 +15,21 @@ class JointHelper extends THREE.Group {
     for (const joint of joints) this.add(joint);
 
     this.createJointTree(bones[0], joints[0], "clip");
-    this.insertAction(this.createColorsMap(1, 1, 1));
+    this.animations = [];
+    this.createAction(this.createColorsMap(1, 1, 1), "default jointsAnimation");
 
-    const curAction = (this.curAction = actions[0]);
-
-    curAction.play();
+    actions[0].play();
   }
 
   update(actionID, frame) {
-    const actions = this.actions;
-    const preAction = this.curAction;
-    const times = this.clip.tracks[0].times;
-    const framesNum = times.length;
+    const mixer = this.mixer;
+    const curAction = this.actions[actionID];
 
-    if (actions[actionID] !== preAction) {
-      preAction.stop();
+    mixer.stopAllAction();
 
-      const curAction = (this.curAction = actions[actionID]);
+    curAction.play();
 
-      curAction.play();
-    }
-
-    const keyframe = frame < framesNum ? frame : framesNum - 1;
-    //const keyframe = frame < framesNum ? frame : frame;
-    //const keyframe = frame < framesNum ? framesNum - 1 : framesNum - 1;
-
-    //console.log(frame);
-    //console.log(keyframe);
-
-    //if (frame >= framesNum) {
-    //console.log(frame);
-    //console.log(keyframe);
-    //}
-
-    this.mixer.setTime(this.clip.tracks[0].times[keyframe]);
+    mixer.setTime(curAction.getClip().tracks[0].times[frame]);
   }
 
   createJoint(geometry, bone) {
@@ -88,28 +69,59 @@ class JointHelper extends THREE.Group {
     return colorsMap;
   }
 
-  createAnimation(colorsMap) {
+  createAction(colorsMap, name, path) {
+    const animation = this.createAnimation(colorsMap, name, path);
+
+    this.animations.push(animation);
+    this.actions.push(this.mixer.clipAction(animation));
+  }
+
+  createAnimation(colorsMap, name, path) {
     const joints = this.joints;
     const jointsNum = joints.length;
     const clipTracks = this.clip.tracks;
     const clipTimes = clipTracks[0].times;
     const tracks = [];
 
-    for (const i of Array(jointsNum).keys()) {
-      tracks[i * 3 + 0] = new THREE.VectorKeyframeTrack(joints[i].name + ".position", clipTimes, clipTracks[i * 2 + 0].values);
-      tracks[i * 3 + 1] = new THREE.QuaternionKeyframeTrack(
-        joints[i].name + ".quaternion",
-        clipTimes,
-        clipTracks[i * 2 + 1].values
-      );
-      tracks[i * 3 + 2] = new THREE.ColorKeyframeTrack(this.joints[i].name + ".material.color", clipTimes, colorsMap[i]);
+    if (path) {
+      const framesNum = path.length;
+      const delta = clipTimes[1] - clipTimes[0];
+      const times = [];
+
+      for (const i of Array(framesNum).keys()) times[i] = !i ? 0 : times[i - 1] + delta;
+
+      for (const i of Array(jointsNum).keys()) {
+        const positions = [];
+        const rotations = [];
+
+        for (const j of Array(framesNum).keys()) {
+          positions.push(clipTracks[i * 2 + 0].values[path[j] * 3 + 0]);
+          positions.push(clipTracks[i * 2 + 0].values[path[j] * 3 + 1]);
+          positions.push(clipTracks[i * 2 + 0].values[path[j] * 3 + 2]);
+
+          rotations.push(clipTracks[i * 2 + 1].values[path[j] * 4 + 0]);
+          rotations.push(clipTracks[i * 2 + 1].values[path[j] * 4 + 1]);
+          rotations.push(clipTracks[i * 2 + 1].values[path[j] * 4 + 2]);
+          rotations.push(clipTracks[i * 2 + 1].values[path[j] * 4 + 3]);
+        }
+
+        tracks[i * 3 + 0] = new THREE.VectorKeyframeTrack(joints[i].name + ".position", times, positions);
+        tracks[i * 3 + 1] = new THREE.QuaternionKeyframeTrack(joints[i].name + ".quaternion", times, rotations);
+        tracks[i * 3 + 2] = new THREE.ColorKeyframeTrack(joints[i].name + ".material.color", times, colorsMap[i]);
+      }
+    } else {
+      for (const i of Array(jointsNum).keys()) {
+        tracks[i * 3 + 0] = new THREE.VectorKeyframeTrack(joints[i].name + ".position", clipTimes, clipTracks[i * 2 + 0].values);
+        tracks[i * 3 + 1] = new THREE.QuaternionKeyframeTrack(
+          joints[i].name + ".quaternion",
+          clipTimes,
+          clipTracks[i * 2 + 1].values
+        );
+        tracks[i * 3 + 2] = new THREE.ColorKeyframeTrack(joints[i].name + ".material.color", clipTimes, colorsMap[i]);
+      }
     }
 
-    return new THREE.AnimationClip("jointsAnimation", -1, tracks);
-  }
-
-  insertAction(colorsMap) {
-    this.actions.push(this.mixer.clipAction(this.createAnimation(colorsMap)));
+    return new THREE.AnimationClip(name, -1, tracks);
   }
 }
 

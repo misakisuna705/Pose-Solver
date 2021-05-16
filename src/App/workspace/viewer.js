@@ -69,7 +69,7 @@ class Controller extends GUI {
     const cmpScene = (this.cmpScene = new Scene());
 
     // controller
-    const playerConfs = { edwFrame: 0, dtwFrame: 0 };
+    const playerConfs = { defaultFrame: 0, edwFrame: 0, dtwFrame: 0 };
     const sceneConfs = (this.sceneConfs = { lapScene: true, sepScene: false });
     const cameraConfs = (this.cameraConfs = {
       freeCam: true,
@@ -80,7 +80,7 @@ class Controller extends GUI {
       leftCam: false,
       rightCam: false,
     });
-    const solverConfs = (this.solverConfs = { EDW: true, DTW: false });
+    //const solverConfs = (this.solverConfs = { default: true, EDW: false, DTW: false });
     const selectConfs = (this.selectConfs = { all: true, part: false });
     const btnConfs = {
       resolve: () => {
@@ -91,12 +91,14 @@ class Controller extends GUI {
 
     const sceneFolder = panel.addFolder("Scene Mode");
     const cameraFolder = panel.addFolder("Camera Mode");
-    //const solverFolder = panel.addFolder("Solver Mode");
     const selectFolder = panel.addFolder("Select Mode");
+    //const solverFolder = panel.addFolder("Solver Mode");
     const playerFolder = panel.addFolder("Player");
 
+    const defaultFrame = playerFolder.add(playerConfs, "defaultFrame", 0, 300, 1);
     const edwFrame = playerFolder.add(playerConfs, "edwFrame", 0, 300, 1);
     const dtwFrame = playerFolder.add(playerConfs, "dtwFrame", 0, this.dtwSolver.path.length - 1, 1);
+
     playerFolder.add(btnConfs, "resolve").name("recalculate");
 
     const sceneModes = [
@@ -112,30 +114,28 @@ class Controller extends GUI {
       cameraFolder.add(cameraConfs, "topCam").name("top camera"),
       cameraFolder.add(cameraConfs, "downCam").name("down camera"),
     ];
-    //const solverModes = [
-    //solverFolder.add(solverConfs, "EDW").name("Euclidean Distance Warping"),
-    //solverFolder.add(solverConfs, "DTW").name("Dynamic Time Warping"),
-    //];
     const selectModes = [
       selectFolder.add(selectConfs, "all").name("full skeleton"),
       selectFolder.add(selectConfs, "part").name("partial bones"),
     ];
+    //const solverModes = [
+    //solverFolder.add(solverConfs, "default").name("Default View"),
+    //solverFolder.add(solverConfs, "EDW").name("Euclidean Distance Warping"),
+    //solverFolder.add(solverConfs, "DTW").name("Dynamic Time Warping"),
+    //];
 
     panel.open();
     sceneFolder.open();
     cameraFolder.open();
-    //solverFolder.open();
     selectFolder.open();
     playerFolder.open();
 
     // listener
-    edwFrame.listen().onChange((frame) => this.updateModel(1, "EDW", frame));
-    dtwFrame.listen().onChange((frame) => this.updateModel(1, "DTW", frame));
+    defaultFrame.listen().onChange((frame) => this.updateModel(0, frame));
+    edwFrame.listen().onChange((frame) => this.updateModel(1, frame));
+    dtwFrame.listen().onChange((frame) => this.updateModel(2, frame));
     for (const mode of sceneModes) mode.listen().onChange(() => this.updateScene(mode.property));
     for (const mode of cameraModes) mode.listen().onChange(() => this.updateCamera(mode.property));
-
-    //for (const mode of solverModes)
-    //mode.listen().onChange(() => this.update(frame.getValue(), undefined, undefined, mode.property, undefined));
 
     //for (const mode of selectModes)
     //mode.listen().onChange(() => this.update(frame.getValue(), undefined, undefined, undefined, mode.property));
@@ -149,7 +149,7 @@ class Controller extends GUI {
     this.updateMode(selectMode, this.selectConfs);
 
     this.updateCamera(cameraMode);
-    this.updateModel(1, "EDW", frame);
+    this.updateModel(0, frame);
     this.updateScene(sceneMode);
   }
 
@@ -162,12 +162,9 @@ class Controller extends GUI {
     this.renderer.update(this.lapScene, this.refScene, this.cmpScene, this.camera);
   }
 
-  updateModel(actionID, solver, frame) {
-    const refFrame = solver === "DTW" ? this.dtwSolver.path[frame][0] : frame;
-    const cmpFrame = solver === "DTW" ? this.dtwSolver.path[frame][1] : frame;
-
-    this.refModel.update(actionID, refFrame);
-    this.cmpModel.update(actionID, cmpFrame);
+  updateModel(actionID, frame) {
+    this.refModel.update(actionID, frame);
+    this.cmpModel.update(actionID, frame);
 
     this.renderer.update(this.lapScene, this.refScene, this.cmpScene, this.camera);
   }
@@ -285,26 +282,37 @@ class Model extends THREE.SkinnedMesh {
     super(geometry, material);
 
     this.skeleton = skeleton;
-    this.clipBones = this.getBoneList(this.skeleton.bones[0].clone(), "clip");
+    this.clipBones = this.getBones(skeleton.bones[0].clone(), "clip");
 
-    this.animations = [clip];
+    const mixer = (this.mixer = new THREE.AnimationMixer(this));
+    const animations = (this.animations = [clip]);
+    const actions = (this.actions = [mixer.clipAction(animations[0])]);
+
+    this.jointHelper = new JointHelper({ bones: this.clipBones, clip: this.animations[0] });
 
     this.limbHelper = new LimbHelper(
       { geometry: new THREE.BufferGeometry(), material: new THREE.LineBasicMaterial({ vertexColors: true }) },
       { bones: this.skeleton.bones, color: "white" }
     );
 
-    this.jointHelper = new JointHelper({ bones: this.clipBones, clip: this.animations[0] });
-
-    this.mixer = new THREE.AnimationMixer(this);
-
-    this.mixer.clipAction(this.animations[0]).play();
+    actions[0].play();
   }
 
   update(actionID, frame) {
-    this.mixer.setTime(this.animations[0].tracks[0].times[frame]);
+    this.updateMixer(actionID, frame);
     this.jointHelper.update(actionID, frame);
     this.limbHelper.update(this.limbHelper.colors);
+  }
+
+  updateMixer(actionID, frame) {
+    const mixer = this.mixer;
+    const curAction = this.actions[actionID];
+
+    mixer.stopAllAction();
+
+    curAction.play();
+
+    mixer.setTime(curAction.getClip().tracks[0].times[frame]);
   }
 
   //getRootBone() {
@@ -315,14 +323,108 @@ class Model extends THREE.SkinnedMesh {
   //return root;
   //}
 
-  getBoneList(node, type) {
+  getBones(node, type) {
     const list = [];
 
     if (type !== "clip" || node.name !== "ENDSITE") list.push(node);
 
-    for (const bone of node.children) list.push.apply(list, this.getBoneList(bone, type));
+    for (const bone of node.children) list.push.apply(list, this.getBones(bone, type));
 
     return list;
+  }
+
+  getPosMap(framesNum) {
+    const bufBones = this.clipBones;
+    const bonesNum = bufBones.length;
+    const clip = this.animations[0];
+    const posMap = [];
+
+    for (const i of Array(bonesNum).keys()) posMap[i] = [];
+
+    for (const i of Array(framesNum).keys()) {
+      for (const j of Array(bonesNum).keys()) {
+        const vectorKeyframeTrack = clip.tracks[j * 2 + 0];
+        const quaternionKeyframeTrack = clip.tracks[j * 2 + 1];
+
+        bufBones[j].position.copy(
+          new THREE.Vector3(
+            vectorKeyframeTrack.values[i * 3 + 0],
+            vectorKeyframeTrack.values[i * 3 + 1],
+            vectorKeyframeTrack.values[i * 3 + 2]
+          )
+        );
+
+        bufBones[j].setRotationFromQuaternion(
+          new THREE.Quaternion(
+            quaternionKeyframeTrack.values[i * 4 + 0],
+            quaternionKeyframeTrack.values[i * 4 + 1],
+            quaternionKeyframeTrack.values[i * 4 + 2],
+            quaternionKeyframeTrack.values[i * 4 + 3]
+          )
+        );
+      }
+
+      for (const j of Array(bonesNum).keys()) {
+        posMap[j][i] = new THREE.Vector3();
+
+        bufBones[j].getWorldPosition(posMap[j][i]);
+      }
+    }
+
+    return posMap;
+  }
+
+  createAction(colorsMap, name, path) {
+    const animation = this.createAnimation(colorsMap, name, path);
+
+    this.animations.push(animation);
+    this.actions.push(this.mixer.clipAction(animation));
+  }
+
+  createAnimation(colorsMap, name, path) {
+    const joints = this.clipBones;
+    const jointsNum = joints.length;
+    const clipTracks = this.animations[0].tracks;
+    const clipTimes = clipTracks[0].times;
+    const tracks = [];
+
+    if (path) {
+      const framesNum = path.length;
+      const delta = clipTimes[1] - clipTimes[0];
+      const times = [];
+
+      for (const i of Array(framesNum).keys()) times[i] = !i ? 0 : times[i - 1] + delta;
+
+      for (const i of Array(jointsNum).keys()) {
+        const positions = [];
+        const rotations = [];
+
+        for (const j of Array(framesNum).keys()) {
+          positions.push(clipTracks[i * 2 + 0].values[path[j] * 3 + 0]);
+          positions.push(clipTracks[i * 2 + 0].values[path[j] * 3 + 1]);
+          positions.push(clipTracks[i * 2 + 0].values[path[j] * 3 + 2]);
+
+          rotations.push(clipTracks[i * 2 + 1].values[path[j] * 4 + 0]);
+          rotations.push(clipTracks[i * 2 + 1].values[path[j] * 4 + 1]);
+          rotations.push(clipTracks[i * 2 + 1].values[path[j] * 4 + 2]);
+          rotations.push(clipTracks[i * 2 + 1].values[path[j] * 4 + 3]);
+        }
+
+        tracks[i * 2 + 0] = new THREE.VectorKeyframeTrack(joints[i].name + ".position", times, positions);
+        tracks[i * 2 + 1] = new THREE.QuaternionKeyframeTrack(joints[i].name + ".quaternion", times, rotations);
+      }
+    } else {
+      for (const i of Array(jointsNum).keys()) {
+        tracks[i * 2 + 0] = new THREE.VectorKeyframeTrack(joints[i].name + ".position", clipTimes, clipTracks[i * 2 + 0].values);
+        tracks[i * 2 + 1] = new THREE.QuaternionKeyframeTrack(
+          joints[i].name + ".quaternion",
+          clipTimes,
+          clipTracks[i * 2 + 1].values
+        );
+      }
+    }
+
+    return new THREE.AnimationClip(name, -1, tracks);
   }
 }
 
