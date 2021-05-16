@@ -1,21 +1,25 @@
 import * as THREE from "three/build/three.module.js";
+import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2";
 
 class JointHelper extends THREE.Group {
   constructor({ bones, clip }) {
     super();
 
     const joints = (this.joints = []);
-    const actions = (this.actions = []);
     const geometry = new THREE.SphereBufferGeometry(3, 10, 10);
 
     this.clip = clip;
-    this.mixer = new THREE.AnimationMixer(this);
 
     for (const bone of bones) joints.push(this.createJoint(geometry, bone));
     for (const joint of joints) this.add(joint);
 
     this.createJointTree(bones[0], joints[0], "clip");
+
+    this.mixer = new THREE.AnimationMixer(this);
     this.animations = [];
+
+    const actions = (this.actions = []);
+
     this.createAction(this.createColorsMap(1, 1, 1), "default jointsAnimation");
 
     actions[0].play();
@@ -125,57 +129,67 @@ class JointHelper extends THREE.Group {
   }
 }
 
-class LimbHelper extends THREE.LineSegments {
-  constructor({ geometry, material }, { bones, color }) {
+class LimbHelper extends LineSegments2 {
+  constructor({ geometry, material }, { bones }) {
     super(geometry, material);
 
-    const vertices = [];
-    const cols = [];
     const limbs = (this.limbs = []);
-    const colors = (this.colors = []);
+    const positions = [];
+    const colors = [];
 
     for (const bone of bones) {
       if (bone.parent) {
-        limbs.push(bone);
         limbs.push(bone.parent);
+        limbs.push(bone);
       }
     }
 
-    for (let i = 0; i < limbs.length; i++) {
-      const col = new THREE.Color(color);
+    for (const i of Array(limbs.length).keys()) {
+      if (i < 8) {
+        const color = new THREE.Color("purple");
 
-      vertices.push(0, 0, 0);
-      cols.push(col.r, col.g, col.b);
+        colors.push(color.r, color.g, color.b);
+      } else if (i < 16) {
+        const color = new THREE.Color("dodgerblue");
 
-      colors.push(col);
+        colors.push(color.r, color.g, color.b);
+      } else if (i < 24) {
+        const color = new THREE.Color("mediumpurple");
+
+        colors.push(color.r, color.g, color.b);
+      } else if (i < 32) {
+        const color = new THREE.Color("deepskyblue");
+
+        colors.push(color.r, color.g, color.b);
+      } else {
+        const color = new THREE.Color("magenta");
+
+        colors.push(color.r, color.g, color.b);
+      }
+
+      positions.push(0, 0, 0);
     }
 
-    this.geometry.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
-    this.geometry.setAttribute("color", new THREE.Float32BufferAttribute(cols, 3));
+    geometry.setPositions(positions);
+    geometry.setColors(colors);
+
+    material.linewidth = 0.01;
   }
 
-  update(colors) {
+  update() {
     const limbs = this.limbs;
     const geometry = this.geometry;
-    const endPos = geometry.getAttribute("position");
-    const endCol = geometry.getAttribute("color");
+    const positions = [];
 
-    endPos.needsUpdate = true;
-    endCol.needsUpdate = true;
+    for (const i of Array(limbs.length).keys()) {
+      const pos = new THREE.Vector3();
 
-    for (const i of Array(limbs.length / 2).keys()) {
-      const globalPos = new THREE.Vector3();
+      limbs[i].getWorldPosition(pos);
 
-      limbs[i * 2 + 0].getWorldPosition(globalPos);
-
-      endPos.setXYZ(i * 2 + 0, globalPos.x, globalPos.y, globalPos.z);
-      endCol.setXYZ(i * 2 + 0, colors[i * 2 + 0].r, colors[i * 2 + 0].g, colors[i * 2 + 0].b);
-
-      limbs[i * 2 + 1].getWorldPosition(globalPos);
-
-      endPos.setXYZ(i * 2 + 1, globalPos.x, globalPos.y, globalPos.z);
-      endCol.setXYZ(i * 2 + 1, colors[i * 2 + 1].r, colors[i * 2 + 1].g, colors[i * 2 + 1].b);
+      positions.push(pos.x, pos.y, pos.z);
     }
+
+    geometry.setPositions(positions);
   }
 }
 

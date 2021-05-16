@@ -2,6 +2,8 @@ import * as THREE from "three/build/three.module.js";
 import { GUI } from "three/examples/jsm/libs/dat.gui.module.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { BVHLoader } from "three/examples/jsm/loaders/BVHLoader.js";
+import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
+import { LineMaterial } from "three/examples/jsm//lines/LineMaterial.js";
 
 //import { XNectLoader } from "App/workspace/loader";
 import { EDWSolver, DTWSolver } from "App/workspace/solver";
@@ -281,18 +283,16 @@ class Model extends THREE.SkinnedMesh {
   constructor({ geometry, material }, { skeleton, clip }) {
     super(geometry, material);
 
-    this.skeleton = skeleton;
-    this.clipBones = this.getBones(skeleton.bones[0].clone(), "clip");
-
     const mixer = (this.mixer = new THREE.AnimationMixer(this));
     const animations = (this.animations = [clip]);
     const actions = (this.actions = [mixer.clipAction(animations[0])]);
+    const clipBones = (this.clipBones = this.getBones(skeleton.bones[0].clone(), "clip"));
 
+    this.skeleton = skeleton;
     this.jointHelper = new JointHelper({ bones: this.clipBones, clip: this.animations[0] });
-
     this.limbHelper = new LimbHelper(
-      { geometry: new THREE.BufferGeometry(), material: new THREE.LineBasicMaterial({ vertexColors: true }) },
-      { bones: this.skeleton.bones, color: "white" }
+      { geometry: new LineSegmentsGeometry(), material: new LineMaterial({ vertexColors: true }) },
+      { bones: skeleton.bones }
     );
 
     actions[0].play();
@@ -301,7 +301,7 @@ class Model extends THREE.SkinnedMesh {
   update(actionID, frame) {
     this.updateMixer(actionID, frame);
     this.jointHelper.update(actionID, frame);
-    this.limbHelper.update(this.limbHelper.colors);
+    this.limbHelper.update();
   }
 
   updateMixer(actionID, frame) {
@@ -382,8 +382,8 @@ class Model extends THREE.SkinnedMesh {
   }
 
   createAnimation(colorsMap, name, path) {
-    const joints = this.clipBones;
-    const jointsNum = joints.length;
+    const bones = this.clipBones;
+    const bonesNum = bones.length;
     const clipTracks = this.animations[0].tracks;
     const clipTimes = clipTracks[0].times;
     const tracks = [];
@@ -395,7 +395,7 @@ class Model extends THREE.SkinnedMesh {
 
       for (const i of Array(framesNum).keys()) times[i] = !i ? 0 : times[i - 1] + delta;
 
-      for (const i of Array(jointsNum).keys()) {
+      for (const i of Array(bonesNum).keys()) {
         const positions = [];
         const rotations = [];
 
@@ -410,14 +410,17 @@ class Model extends THREE.SkinnedMesh {
           rotations.push(clipTracks[i * 2 + 1].values[path[j] * 4 + 3]);
         }
 
-        tracks[i * 2 + 0] = new THREE.VectorKeyframeTrack(joints[i].name + ".position", times, positions);
-        tracks[i * 2 + 1] = new THREE.QuaternionKeyframeTrack(joints[i].name + ".quaternion", times, rotations);
+        tracks[i * 2 + 0] = new THREE.VectorKeyframeTrack(bones[i].name + ".position", times, positions);
+        //tracks[i * 3 + 0] = new THREE.VectorKeyframeTrack(bones[i].name + ".position", times, positions);
+        tracks[i * 2 + 1] = new THREE.QuaternionKeyframeTrack(bones[i].name + ".quaternion", times, rotations);
+        //tracks[i * 3 + 1] = new THREE.QuaternionKeyframeTrack(bones[i].name + ".quaternion", times, rotations);
+        //tracks[i * 3 + 2] = new THREE.QuaternionKeyframeTrack(bones[i].name + ".material.color", times, rotations);
       }
     } else {
-      for (const i of Array(jointsNum).keys()) {
-        tracks[i * 2 + 0] = new THREE.VectorKeyframeTrack(joints[i].name + ".position", clipTimes, clipTracks[i * 2 + 0].values);
+      for (const i of Array(bonesNum).keys()) {
+        tracks[i * 2 + 0] = new THREE.VectorKeyframeTrack(bones[i].name + ".position", clipTimes, clipTracks[i * 2 + 0].values);
         tracks[i * 2 + 1] = new THREE.QuaternionKeyframeTrack(
-          joints[i].name + ".quaternion",
+          bones[i].name + ".quaternion",
           clipTimes,
           clipTracks[i * 2 + 1].values
         );
