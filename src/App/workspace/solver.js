@@ -7,9 +7,11 @@ class EDWSolver {
     const minFramesNum = (this.minFramesNum = Math.min(refFramesNum, cmpFramesNum));
     const refPosMap = ref.getPosMap(minFramesNum);
     const cmpPosMap = cmp.getPosMap(minFramesNum);
-    const diffPosMap = this.getPosDiffMap(cmpPosMap, refPosMap);
+    const diffPosMap = getPosDiffMap(cmpPosMap, refPosMap, minFramesNum);
     const maxDiff = Math.max(...Array().concat.apply([], diffPosMap));
     const { refColorMap, cmpColorMap } = this.getColorMap(refFramesNum, cmpFramesNum, diffPosMap, maxDiff);
+
+    this.maxFramesNum = Math.max(refFramesNum, cmpFramesNum);
 
     ref.createAction(refColorMap, "edw animation");
     cmp.createAction(cmpColorMap, "edw animation");
@@ -22,20 +24,6 @@ class EDWSolver {
   }
 
   update() {}
-
-  getPosDiffMap(cmpPosMap, refPosMap) {
-    const diffPosMap = [];
-    const bonesNum = refPosMap.length;
-    const framesNum = this.minFramesNum;
-
-    for (const i of Array(bonesNum).keys()) {
-      diffPosMap[i] = [];
-
-      for (const j of Array(framesNum).keys()) diffPosMap[i][j] = cmpPosMap[i][j].distanceTo(refPosMap[i][j]);
-    }
-
-    return diffPosMap;
-  }
 
   getColorMap(refFramesNum, cmpFramesNum, diffPosMap, maxDiff) {
     const minFramesNum = this.minFramesNum;
@@ -92,19 +80,17 @@ class DTWSolver {
     const refPosSum = this.getPosSums(refFramesNum, refPosMap);
     const cmpPosSum = this.getPosSums(cmpFramesNum, cmpPosMap);
     const dtwMap = this.getDtwMap(refFramesNum, cmpFramesNum, refPosSum, cmpPosSum);
-
-    const path = (this.path = this.getDtwPath(refFramesNum, cmpFramesNum, dtwMap));
-
-    const diffPosMap = this.getPosDiffMap(cmpPosMap, refPosMap);
+    const path = this.getDtwPath(refFramesNum, cmpFramesNum, dtwMap);
+    const dtwFramesNum = (this.dtwFramesNum = path.length);
+    const diffPosMap = getPosDiffMap(cmpPosMap, refPosMap, dtwFramesNum, path);
     const maxDiff = Math.max(...Array().concat.apply([], diffPosMap));
     const { refColorMap, cmpColorMap } = this.getColorMap(diffPosMap, maxDiff);
 
-    const framesNum = path.length;
     const refPath = [];
     const cmpPath = [];
 
-    for (const i of Array(framesNum).keys()) refPath.push(path[i][0]);
-    for (const i of Array(framesNum).keys()) cmpPath.push(path[i][1]);
+    for (const i of Array(dtwFramesNum).keys()) refPath.push(path[i][0]);
+    for (const i of Array(dtwFramesNum).keys()) cmpPath.push(path[i][1]);
 
     ref.createAction(refColorMap, "dtw animation", refPath);
     cmp.createAction(cmpColorMap, "dtw animation", cmpPath);
@@ -158,7 +144,7 @@ class DTWSolver {
     let i = refFramesNum - 1;
     let j = cmpFramesNum - 1;
 
-    let path = (this.path = [[i, j]]);
+    let path = [[i, j]];
 
     while (i > 0 || j > 0) {
       if (i > 0) {
@@ -194,23 +180,8 @@ class DTWSolver {
     return path.reverse();
   }
 
-  getPosDiffMap(cmpPosMap, refPosMap) {
-    const bonesNum = refPosMap.length;
-    const path = this.path;
-    const framesNum = path.length;
-    const diffPosMap = [];
-
-    for (const i of Array(bonesNum).keys()) {
-      diffPosMap[i] = [];
-
-      for (const j of Array(framesNum).keys()) diffPosMap[i][j] = cmpPosMap[i][path[j][1]].distanceTo(refPosMap[i][path[j][0]]);
-    }
-
-    return diffPosMap;
-  }
-
   getColorMap(diffPosMap, maxDiff) {
-    const framesNum = this.path.length;
+    const framesNum = this.dtwFramesNum;
     const bonesNum = diffPosMap.length;
     const refColorMap = [];
     const cmpColorMap = [];
@@ -233,6 +204,23 @@ class DTWSolver {
 
     return { refColorMap, cmpColorMap };
   }
+}
+
+function getPosDiffMap(cmpPosMap, refPosMap, framesNum, path) {
+  const bonesNum = refPosMap.length;
+  const diffPosMap = [];
+
+  for (const i of Array(bonesNum).keys()) {
+    diffPosMap[i] = [];
+
+    for (const j of Array(framesNum).keys()) {
+      diffPosMap[i][j] = path
+        ? cmpPosMap[i][path[j][1]].distanceTo(refPosMap[i][path[j][0]])
+        : cmpPosMap[i][j].distanceTo(refPosMap[i][j]);
+    }
+  }
+
+  return diffPosMap;
 }
 
 export { EDWSolver, DTWSolver };

@@ -2,19 +2,18 @@ import * as THREE from "three/build/three.module.js";
 import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2";
 
 class JointHelper extends THREE.Group {
-  constructor({ bones, clip }) {
+  constructor({ bones, clip, opacity }) {
     super();
 
     const joints = (this.joints = []);
     const geometry = new THREE.SphereBufferGeometry(3, 10, 10);
 
-    this.clip = clip;
-
-    for (const bone of bones) joints.push(this.createJoint(geometry, bone));
+    for (const bone of bones) joints.push(this.createJoint(geometry, bone, opacity));
     for (const joint of joints) this.add(joint);
 
-    this.createJointTree(bones[0], joints[0], "clip");
+    this.createJointTree(bones[0], joints[0]);
 
+    this.clip = clip;
     this.mixer = new THREE.AnimationMixer(this);
     this.animations = [];
 
@@ -36,8 +35,8 @@ class JointHelper extends THREE.Group {
     mixer.setTime(curAction.getClip().tracks[0].times[frame]);
   }
 
-  createJoint(geometry, bone) {
-    const joint = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial());
+  createJoint(geometry, bone, opacity) {
+    const joint = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ transparent: true, opacity: opacity }));
 
     joint.name = bone.name;
 
@@ -130,7 +129,7 @@ class JointHelper extends THREE.Group {
 }
 
 class LimbHelper extends LineSegments2 {
-  constructor({ geometry, material }, { bones }) {
+  constructor({ geometry, material }, { bones, opacity }) {
     super(geometry, material);
 
     const limbs = (this.limbs = []);
@@ -174,6 +173,9 @@ class LimbHelper extends LineSegments2 {
     geometry.setColors(colors);
 
     material.linewidth = 0.01;
+    material.vertexColors = true;
+    material.transparent = true;
+    material.opacity = opacity;
   }
 
   update() {

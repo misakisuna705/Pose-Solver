@@ -3,7 +3,7 @@ import { GUI } from "three/examples/jsm/libs/dat.gui.module.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { BVHLoader } from "three/examples/jsm/loaders/BVHLoader.js";
 import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
-import { LineMaterial } from "three/examples/jsm//lines/LineMaterial.js";
+import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 
 //import { XNectLoader } from "App/workspace/loader";
 import { EDWSolver, DTWSolver } from "App/workspace/solver";
@@ -12,6 +12,8 @@ import { JointHelper, LimbHelper } from "App/workspace/helper";
 import BVHURL1 from "assets/bvh/data_3d1.bvh";
 import BVHURL2 from "assets/bvh/data_3d2.bvh";
 //import XNECTURL from "assets/xnect/post_raw3D.txt";
+
+// syncWith
 
 class Viewer {
   constructor({ container }) {
@@ -50,20 +52,22 @@ class Controller extends GUI {
 
     // orbit
     const orbit = (this.orbit = new OrbitControls(camera, canvas));
+    const mouse = (this.mouse = new THREE.Vector2());
+    const raycaster = (this.raycaster = new THREE.Raycaster());
 
     // model
     const refModel = (this.refModel = new Model(
-      { geometry: new THREE.BufferGeometry(), material: new THREE.MeshNormalMaterial({ skinning: true }) },
+      { geometry: new THREE.BufferGeometry(), material: new THREE.MeshNormalMaterial({ skinning: true, opacity: 0.3 }) },
       { skeleton: bvhs[0].skeleton, clip: bvhs[0].clip }
     ));
     const cmpModel = (this.cmpModel = new Model(
-      { geometry: new THREE.BufferGeometry(), material: new THREE.MeshNormalMaterial({ skinning: true }) },
+      { geometry: new THREE.BufferGeometry(), material: new THREE.MeshNormalMaterial({ skinning: true, opacity: 1 }) },
       { skeleton: bvhs[1].skeleton, clip: bvhs[1].clip }
     ));
 
     // solver
-    this.edwSolver = new EDWSolver({ ref: refModel, cmp: cmpModel });
-    this.dtwSolver = new DTWSolver({ ref: refModel, cmp: cmpModel });
+    const edwSolver = (this.edwSolver = new EDWSolver({ ref: refModel, cmp: cmpModel }));
+    const dtwSolver = (this.dtwSolver = new DTWSolver({ ref: refModel, cmp: cmpModel }));
 
     // scene
     const lapScene = (this.lapScene = new Scene());
@@ -97,9 +101,9 @@ class Controller extends GUI {
     //const solverFolder = panel.addFolder("Solver Mode");
     const playerFolder = panel.addFolder("Player");
 
-    const defaultFrame = playerFolder.add(playerConfs, "defaultFrame", 0, 300, 1);
-    const edwFrame = playerFolder.add(playerConfs, "edwFrame", 0, 300, 1);
-    const dtwFrame = playerFolder.add(playerConfs, "dtwFrame", 0, this.dtwSolver.path.length - 1, 1);
+    const defaultFrame = playerFolder.add(playerConfs, "defaultFrame", 0, edwSolver.maxFramesNum - 1, 1);
+    const edwFrame = playerFolder.add(playerConfs, "edwFrame", 0, edwSolver.maxFramesNum - 1, 1);
+    const dtwFrame = playerFolder.add(playerConfs, "dtwFrame", 0, dtwSolver.dtwFramesNum - 1, 1);
 
     playerFolder.add(btnConfs, "resolve").name("recalculate");
 
@@ -142,8 +146,13 @@ class Controller extends GUI {
     //for (const mode of selectModes)
     //mode.listen().onChange(() => this.update(frame.getValue(), undefined, undefined, undefined, mode.property));
 
-    orbit.addEventListener("change", () => renderer.update(lapScene, refScene, cmpScene, camera), false);
+    orbit.addEventListener("change", () => renderer.update(lapScene, refScene, cmpScene, camera, raycaster, mouse), false);
     window.addEventListener("resize", () => this.updateCamera(), false);
+    window.addEventListener(
+      "mousemove",
+      (event) => renderer.update(lapScene, refScene, cmpScene, camera, raycaster, mouse, event),
+      false
+    );
   }
 
   init(frame, sceneMode, cameraMode, solverMode, selectMode) {
@@ -161,14 +170,14 @@ class Controller extends GUI {
     this.camera.update(this.renderer.domElement, cameraMode);
     this.orbit.update();
 
-    this.renderer.update(this.lapScene, this.refScene, this.cmpScene, this.camera);
+    this.renderer.update(this.lapScene, this.refScene, this.cmpScene, this.camera, this.raycaster, this.mouse);
   }
 
   updateModel(actionID, frame) {
     this.refModel.update(actionID, frame);
     this.cmpModel.update(actionID, frame);
 
-    this.renderer.update(this.lapScene, this.refScene, this.cmpScene, this.camera);
+    this.renderer.update(this.lapScene, this.refScene, this.cmpScene, this.camera, this.raycaster, this.mouse);
   }
 
   updateScene(sceneMode) {
@@ -181,8 +190,6 @@ class Controller extends GUI {
     this.updateMode(sceneMode, this.sceneConfs);
 
     if (sceneMode === "lapScene") {
-      //this.add(model); // ???
-      //this.add(model.getRootBone()); // ???
       lapScene.update(refModel);
       lapScene.update(cmpModel);
 
@@ -195,7 +202,7 @@ class Controller extends GUI {
       lapScene.visible = false;
     }
 
-    this.renderer.update(this.lapScene, this.refScene, this.cmpScene, this.camera);
+    this.renderer.update(this.lapScene, this.refScene, this.cmpScene, this.camera, this.raycaster, this.mouse);
   }
 
   updateMode(mode, confs) {
@@ -209,27 +216,42 @@ class Renderer extends THREE.WebGLRenderer {
 
     this.setScissorTest(true);
     this.autoClear = false;
-
-    // syncWith
   }
 
-  update(lapScene, refScene, cmpScene, camera) {
-    const canvas = this.domElement;
-
+  update(lapScene, refScene, cmpScene, camera, raycaster, mouse, event) {
     this.setSize(window.innerWidth, window.innerHeight);
 
-    const { left, right, top, bottom, width, height } = canvas.getBoundingClientRect();
+    const { left, right, top, bottom, width, height } = this.domElement.getBoundingClientRect();
 
-    this.updateView(lapScene, camera, left, top, width, height);
-    this.updateView(refScene, camera, left, top, width / 2, height);
-    this.updateView(cmpScene, camera, left + width / 2, top, width / 2, height);
+    this.updateView(lapScene, camera, left, top, width, height, raycaster, mouse, event);
+    this.updateView(refScene, camera, left, top, width / 2, height, raycaster, mouse, event);
+    this.updateView(cmpScene, camera, left + width / 2, top, width / 2, height, raycaster, mouse, event);
 
     //requestAnimationFrame(() => this.update());
   }
 
-  updateView(scene, camera, left, top, right, bottom) {
-    this.setScissor(left, top, right, bottom);
-    this.setViewport(left, top, right, bottom);
+  updateView(scene, camera, left, top, width, height, raycaster, mouse, event) {
+    const right = left + width;
+    const bottom = top + height;
+
+    mouse.x = event ? ((event.clientX - left) / (right - left)) * 2 - 1 : -1;
+    mouse.y = event ? -((event.clientY - top) / (bottom - top)) * 2 + 1 : -1;
+
+    raycaster.setFromCamera(mouse, camera);
+
+    const intersects = raycaster.intersectObjects(scene.children);
+
+    for (const intersect of intersects) {
+      const object = intersect.object;
+
+      if (object.type !== "GridHelper") {
+        object.material.color.set(0xff0000);
+      }
+    }
+
+    this.setScissor(left, top, width, height);
+    this.setViewport(left, top, width, height);
+
     this.render(scene, camera);
   }
 }
@@ -283,16 +305,17 @@ class Model extends THREE.SkinnedMesh {
   constructor({ geometry, material }, { skeleton, clip }) {
     super(geometry, material);
 
+    const opacity = this.material.opacity;
     const mixer = (this.mixer = new THREE.AnimationMixer(this));
     const animations = (this.animations = [clip]);
     const actions = (this.actions = [mixer.clipAction(animations[0])]);
     const clipBones = (this.clipBones = this.getBones(skeleton.bones[0].clone(), "clip"));
 
     this.skeleton = skeleton;
-    this.jointHelper = new JointHelper({ bones: this.clipBones, clip: this.animations[0] });
+    this.jointHelper = new JointHelper({ bones: this.clipBones, clip: this.animations[0], opacity: opacity });
     this.limbHelper = new LimbHelper(
-      { geometry: new LineSegmentsGeometry(), material: new LineMaterial({ vertexColors: true }) },
-      { bones: skeleton.bones }
+      { geometry: new LineSegmentsGeometry(), material: new LineMaterial() },
+      { bones: skeleton.bones, opacity }
     );
 
     actions[0].play();
@@ -411,10 +434,7 @@ class Model extends THREE.SkinnedMesh {
         }
 
         tracks[i * 2 + 0] = new THREE.VectorKeyframeTrack(bones[i].name + ".position", times, positions);
-        //tracks[i * 3 + 0] = new THREE.VectorKeyframeTrack(bones[i].name + ".position", times, positions);
         tracks[i * 2 + 1] = new THREE.QuaternionKeyframeTrack(bones[i].name + ".quaternion", times, rotations);
-        //tracks[i * 3 + 1] = new THREE.QuaternionKeyframeTrack(bones[i].name + ".quaternion", times, rotations);
-        //tracks[i * 3 + 2] = new THREE.QuaternionKeyframeTrack(bones[i].name + ".material.color", times, rotations);
       }
     } else {
       for (const i of Array(bonesNum).keys()) {
