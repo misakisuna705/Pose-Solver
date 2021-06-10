@@ -117,37 +117,39 @@ class Controller extends GUI {
     selectFolder.open();
     playerFolder.open();
 
-    //update(frame, sceneMode, cameraMode, solverMode, selectMode)
-
     // listener
     defaultFrame
       .listen()
-      .onChange((frame) => this.update(defaultFrame, this.getMode(this.sceneConfs), undefined, undefined, undefined));
-    edwFrame.listen().onChange((frame) => this.update(edwFrame, this.getMode(this.sceneConfs), undefined, undefined, undefined));
-    dtwFrame.listen().onChange((frame) => this.update(dtwFrame, this.getMode(this.sceneConfs), undefined, undefined, undefined));
+      .onChange((frame) => this.update(defaultFrame, this.getMode(sceneConfs), this.getMode(cameraConfs), undefined, undefined));
+    edwFrame
+      .listen()
+      .onChange((frame) => this.update(edwFrame, this.getMode(sceneConfs), this.getMode(cameraConfs), undefined, undefined));
+    dtwFrame
+      .listen()
+      .onChange((frame) => this.update(dtwFrame, this.getMode(sceneConfs), this.getMode(cameraConfs), undefined, undefined));
 
     for (const mode of sceneModes)
-      mode.listen().onChange(() => this.update(this.curPlayerMode, mode.property, undefined, undefined, undefined));
+      mode
+        .listen()
+        .onChange(() => this.update(this.curPlayerMode, mode.property, this.getMode(cameraConfs), undefined, undefined));
     for (const mode of cameraModes)
       mode
         .listen()
-        .onChange(() => this.update(this.curPlayerMode, this.getMode(this.sceneConfs), mode.property, undefined, undefined));
+        .onChange(() => this.update(this.curPlayerMode, this.getMode(sceneConfs), mode.property, undefined, undefined));
     //for (const mode of selectModes)
     //mode.listen().onChange(() => this.update(frame.getValue(), undefined, undefined, undefined, mode.property));
 
-    renderer.orbit.addEventListener(
-      "change",
-      () => this.update(this.curPlayerMode, this.getMode(this.sceneConfs), undefined, undefined, undefined),
-      false
-    );
+    renderer.orbit.addEventListener("change", () => this.renderer.update(undefined, this.getMode(sceneConfs)), false);
+
     window.addEventListener(
       "resize",
-      () => this.update(this.curPlayerMode, this.getMode(this.sceneConfs), undefined, undefined, undefined),
+      () => this.update(this.curPlayerMode, this.getMode(sceneConfs), this.getMode(cameraConfs), undefined, undefined),
       false
     );
     window.addEventListener(
       "mousemove",
-      (event) => this.update(this.curPlayerMode, this.getMode(this.sceneConfs), undefined, undefined, undefined, event),
+      (event) =>
+        this.update(this.curPlayerMode, this.getMode(sceneConfs), this.getMode(cameraConfs), undefined, undefined, event),
       false
     );
   }
@@ -157,12 +159,12 @@ class Controller extends GUI {
 
     this.updateMode(cameraMode, this.cameraConfs);
     this.updateMode(sceneMode, this.sceneConfs);
-    this.updateMode(solverMode, this.solverConfs);
-    this.updateMode(selectMode, this.selectConfs);
+    //this.updateMode(solverMode, this.solverConfs);
+    //this.updateMode(selectMode, this.selectConfs);
 
-    this.renderer.updateCamera(cameraMode);
-    this.renderer.updateScene(sceneMode);
     this.renderer.updateModel(playerMode);
+    this.renderer.updateScene(sceneMode);
+    this.renderer.updateCamera(cameraMode);
     this.renderer.update(event, sceneMode);
   }
 
@@ -209,7 +211,7 @@ class Renderer extends THREE.WebGLRenderer {
 
   updateCamera(cameraMode) {
     this.camera.update(this.domElement, cameraMode);
-    //this.orbit.update();
+    this.orbit.update();
   }
 
   updateModel(playerMode) {
@@ -305,7 +307,6 @@ class Camera extends THREE.PerspectiveCamera {
   update(canvas, mode) {
     const position = this.position;
 
-    if (mode === "freeCam") position.set(0, 100, 300);
     if (mode === "frontCam") position.set(0, 100, 300);
     if (mode === "backCam") position.set(0, 100, -300);
     if (mode === "leftCam") position.set(-300, 100, 0);
