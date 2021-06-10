@@ -24,7 +24,10 @@ class JointHelper extends THREE.Group {
     actions[0].play();
   }
 
-  update(actionID, frame) {
+  update(playerMode) {
+    const mode = playerMode.property;
+    const frame = playerMode.getValue();
+    const actionID = mode === "edwFrame" ? 1 : mode === "dtwFrame" ? 2 : 0;
     const mixer = this.mixer;
     const curAction = this.actions[actionID];
 
@@ -144,27 +147,15 @@ class LimbHelper extends LineSegments2 {
     }
 
     for (const i of Array(limbs.length).keys()) {
-      if (i < 8) {
-        const color = new THREE.Color("purple");
+      let color = undefined;
 
-        colors.push(color.r, color.g, color.b);
-      } else if (i < 16) {
-        const color = new THREE.Color("dodgerblue");
+      if (i < 8) color = new THREE.Color("purple");
+      else if (i < 16) color = new THREE.Color("dodgerblue");
+      else if (i < 24) color = new THREE.Color("mediumpurple");
+      else if (i < 32) color = new THREE.Color("deepskyblue");
+      else color = new THREE.Color("magenta");
 
-        colors.push(color.r, color.g, color.b);
-      } else if (i < 24) {
-        const color = new THREE.Color("mediumpurple");
-
-        colors.push(color.r, color.g, color.b);
-      } else if (i < 32) {
-        const color = new THREE.Color("deepskyblue");
-
-        colors.push(color.r, color.g, color.b);
-      } else {
-        const color = new THREE.Color("magenta");
-
-        colors.push(color.r, color.g, color.b);
-      }
+      colors.push(color.r, color.g, color.b);
 
       positions.push(0, 0, 0);
     }

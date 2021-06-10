@@ -3,7 +3,7 @@ import { Viewer } from "App/workspace/viewer";
 
 export default class Workspace extends Component {
   componentDidMount() {
-    this.viewer = new Viewer({ container: this.element });
+    this.viewer = new Viewer({ container: this.element, width: window.innerWidth, height: window.innerHeight });
   }
 
   render() {

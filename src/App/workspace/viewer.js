@@ -16,20 +16,20 @@ import BVHURL2 from "assets/bvh/data_3d2.bvh";
 // syncWith
 
 class Viewer {
-  constructor({ container }) {
+  constructor({ container, width, height }) {
     const canvas = document.createElement("canvas");
     const bvhsLoaded = [this.load(new BVHLoader(), BVHURL1), this.load(new BVHLoader(), BVHURL2)];
     //const xnectLoaded = this.load(new XNectLoader(), XNECTURL);
 
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    canvas.width = width;
+    canvas.height = height;
 
     container.appendChild(canvas);
 
     Promise.all(bvhsLoaded).then((results) => {
       const controller = (this.controller = new Controller({ canvas: canvas, bvhs: results }));
 
-      controller.init(0, "lapScene", "freeCam", "EDW", "all");
+      controller.update(controller.defaultFrame, "lapScene", "freeCam", "EDW", "all");
     });
   }
 
@@ -45,34 +45,7 @@ class Controller extends GUI {
     super();
 
     // renderer
-    const renderer = (this.renderer = new Renderer({ canvas: canvas }));
-
-    // camera
-    const camera = (this.camera = new Camera({ fov: 60, aspect: 640 / 360, near: 0.1, far: 50000 }));
-
-    // orbit
-    const orbit = (this.orbit = new OrbitControls(camera, canvas));
-    const mouse = (this.mouse = new THREE.Vector2());
-    const raycaster = (this.raycaster = new THREE.Raycaster());
-
-    // model
-    const refModel = (this.refModel = new Model(
-      { geometry: new THREE.BufferGeometry(), material: new THREE.MeshNormalMaterial({ skinning: true, opacity: 0.3 }) },
-      { skeleton: bvhs[0].skeleton, clip: bvhs[0].clip }
-    ));
-    const cmpModel = (this.cmpModel = new Model(
-      { geometry: new THREE.BufferGeometry(), material: new THREE.MeshNormalMaterial({ skinning: true, opacity: 1 }) },
-      { skeleton: bvhs[1].skeleton, clip: bvhs[1].clip }
-    ));
-
-    // solver
-    const edwSolver = (this.edwSolver = new EDWSolver({ ref: refModel, cmp: cmpModel }));
-    const dtwSolver = (this.dtwSolver = new DTWSolver({ ref: refModel, cmp: cmpModel }));
-
-    // scene
-    const lapScene = (this.lapScene = new Scene());
-    const refScene = (this.refScene = new Scene());
-    const cmpScene = (this.cmpScene = new Scene());
+    const renderer = (this.renderer = new Renderer({ canvas: canvas }, { bvhs: bvhs }));
 
     // controller
     const playerConfs = { defaultFrame: 0, edwFrame: 0, dtwFrame: 0 };
@@ -101,9 +74,15 @@ class Controller extends GUI {
     //const solverFolder = panel.addFolder("Solver Mode");
     const playerFolder = panel.addFolder("Player");
 
-    const defaultFrame = playerFolder.add(playerConfs, "defaultFrame", 0, edwSolver.maxFramesNum - 1, 1);
-    const edwFrame = playerFolder.add(playerConfs, "edwFrame", 0, edwSolver.maxFramesNum - 1, 1);
-    const dtwFrame = playerFolder.add(playerConfs, "dtwFrame", 0, dtwSolver.dtwFramesNum - 1, 1);
+    const defaultFrame = (this.defaultFrame = playerFolder.add(
+      playerConfs,
+      "defaultFrame",
+      0,
+      renderer.edwSolver.maxFramesNum - 1,
+      1
+    ));
+    const edwFrame = (this.edwFrame = playerFolder.add(playerConfs, "edwFrame", 0, renderer.edwSolver.maxFramesNum - 1, 1));
+    const dtwFrame = (this.dtwFrame = playerFolder.add(playerConfs, "dtwFrame", 0, renderer.dtwSolver.dtwFramesNum - 1, 1));
 
     playerFolder.add(btnConfs, "resolve").name("recalculate");
 
@@ -130,54 +109,112 @@ class Controller extends GUI {
     //solverFolder.add(solverConfs, "DTW").name("Dynamic Time Warping"),
     //];
 
+    this.curPlayerMode = undefined;
+
     panel.open();
     sceneFolder.open();
     cameraFolder.open();
     selectFolder.open();
     playerFolder.open();
 
-    // listener
-    defaultFrame.listen().onChange((frame) => this.updateModel(0, frame));
-    edwFrame.listen().onChange((frame) => this.updateModel(1, frame));
-    dtwFrame.listen().onChange((frame) => this.updateModel(2, frame));
-    for (const mode of sceneModes) mode.listen().onChange(() => this.updateScene(mode.property));
-    for (const mode of cameraModes) mode.listen().onChange(() => this.updateCamera(mode.property));
+    //update(frame, sceneMode, cameraMode, solverMode, selectMode)
 
+    // listener
+    defaultFrame
+      .listen()
+      .onChange((frame) => this.update(defaultFrame, this.getMode(this.sceneConfs), undefined, undefined, undefined));
+    edwFrame.listen().onChange((frame) => this.update(edwFrame, this.getMode(this.sceneConfs), undefined, undefined, undefined));
+    dtwFrame.listen().onChange((frame) => this.update(dtwFrame, this.getMode(this.sceneConfs), undefined, undefined, undefined));
+
+    for (const mode of sceneModes)
+      mode.listen().onChange(() => this.update(this.curPlayerMode, mode.property, undefined, undefined, undefined));
+    for (const mode of cameraModes)
+      mode
+        .listen()
+        .onChange(() => this.update(this.curPlayerMode, this.getMode(this.sceneConfs), mode.property, undefined, undefined));
     //for (const mode of selectModes)
     //mode.listen().onChange(() => this.update(frame.getValue(), undefined, undefined, undefined, mode.property));
 
-    orbit.addEventListener("change", () => renderer.update(lapScene, refScene, cmpScene, camera, raycaster, mouse), false);
-    window.addEventListener("resize", () => this.updateCamera(), false);
+    renderer.orbit.addEventListener(
+      "change",
+      () => this.update(this.curPlayerMode, this.getMode(this.sceneConfs), undefined, undefined, undefined),
+      false
+    );
+    window.addEventListener(
+      "resize",
+      () => this.update(this.curPlayerMode, this.getMode(this.sceneConfs), undefined, undefined, undefined),
+      false
+    );
     window.addEventListener(
       "mousemove",
-      (event) => renderer.update(lapScene, refScene, cmpScene, camera, raycaster, mouse, event),
+      (event) => this.update(this.curPlayerMode, this.getMode(this.sceneConfs), undefined, undefined, undefined, event),
       false
     );
   }
 
-  init(frame, sceneMode, cameraMode, solverMode, selectMode) {
+  update(playerMode, sceneMode, cameraMode, solverMode, selectMode, event) {
+    this.curPlayerMode = playerMode;
+
+    this.updateMode(cameraMode, this.cameraConfs);
+    this.updateMode(sceneMode, this.sceneConfs);
     this.updateMode(solverMode, this.solverConfs);
     this.updateMode(selectMode, this.selectConfs);
 
-    this.updateCamera(cameraMode);
-    this.updateModel(0, frame);
-    this.updateScene(sceneMode);
+    this.renderer.updateCamera(cameraMode);
+    this.renderer.updateScene(sceneMode);
+    this.renderer.updateModel(playerMode);
+    this.renderer.update(event, sceneMode);
+  }
+
+  getMode(confs) {
+    for (const conf in confs) if (confs[conf]) return conf;
+  }
+
+  updateMode(mode, confs) {
+    for (const conf in confs) confs[conf] = conf === mode ? true : false;
+  }
+}
+
+class Renderer extends THREE.WebGLRenderer {
+  constructor(parameters, { bvhs }) {
+    super(parameters);
+
+    // camera
+    const camera = (this.camera = new Camera({ fov: 60, aspect: 640 / 360, near: 0.1, far: 50000 }));
+    // orbit
+    const orbit = (this.orbit = new OrbitControls(camera, this.domElement));
+    const mouse = (this.mouse = new THREE.Vector2());
+    const raycaster = (this.raycaster = new THREE.Raycaster());
+    // model
+    const refModel = (this.refModel = new Model(
+      { geometry: new THREE.BufferGeometry(), material: new THREE.MeshNormalMaterial({ skinning: true, opacity: 0.3 }) },
+      { skeleton: bvhs[0].skeleton, clip: bvhs[0].clip }
+    ));
+    const cmpModel = (this.cmpModel = new Model(
+      { geometry: new THREE.BufferGeometry(), material: new THREE.MeshNormalMaterial({ skinning: true, opacity: 1 }) },
+      { skeleton: bvhs[1].skeleton, clip: bvhs[1].clip }
+    ));
+    // solver
+    const edwSolver = (this.edwSolver = new EDWSolver({ ref: refModel, cmp: cmpModel }));
+    const dtwSolver = (this.dtwSolver = new DTWSolver({ ref: refModel, cmp: cmpModel }));
+    // scene
+    const lapScene = (this.lapScene = new Scene());
+    const refScene = (this.refScene = new Scene());
+    const cmpScene = (this.cmpScene = new Scene());
+
+    this.curIntersected = null;
+    this.setScissorTest(true);
+    this.autoClear = false;
   }
 
   updateCamera(cameraMode) {
-    this.updateMode(cameraMode, this.cameraConfs);
-
-    this.camera.update(this.renderer.domElement, cameraMode);
-    this.orbit.update();
-
-    this.renderer.update(this.lapScene, this.refScene, this.cmpScene, this.camera, this.raycaster, this.mouse);
+    this.camera.update(this.domElement, cameraMode);
+    //this.orbit.update();
   }
 
-  updateModel(actionID, frame) {
-    this.refModel.update(actionID, frame);
-    this.cmpModel.update(actionID, frame);
-
-    this.renderer.update(this.lapScene, this.refScene, this.cmpScene, this.camera, this.raycaster, this.mouse);
+  updateModel(playerMode) {
+    this.refModel.update(playerMode);
+    this.cmpModel.update(playerMode);
   }
 
   updateScene(sceneMode) {
@@ -186,8 +223,6 @@ class Controller extends GUI {
     const lapScene = this.lapScene;
     const refScene = this.refScene;
     const cmpScene = this.cmpScene;
-
-    this.updateMode(sceneMode, this.sceneConfs);
 
     if (sceneMode === "lapScene") {
       lapScene.update(refModel);
@@ -201,31 +236,23 @@ class Controller extends GUI {
 
       lapScene.visible = false;
     }
-
-    this.renderer.update(this.lapScene, this.refScene, this.cmpScene, this.camera, this.raycaster, this.mouse);
   }
 
-  updateMode(mode, confs) {
-    for (const conf in confs) confs[conf] = conf === mode ? true : false;
-  }
-}
+  update(event, sceneMode) {
+    const camera = this.camera;
+    const raycaster = this.raycaster;
+    const mouse = this.mouse;
 
-class Renderer extends THREE.WebGLRenderer {
-  constructor(parameters) {
-    super(parameters);
-
-    this.setScissorTest(true);
-    this.autoClear = false;
-  }
-
-  update(lapScene, refScene, cmpScene, camera, raycaster, mouse, event) {
     this.setSize(window.innerWidth, window.innerHeight);
 
     const { left, right, top, bottom, width, height } = this.domElement.getBoundingClientRect();
 
-    this.updateView(lapScene, camera, left, top, width, height, raycaster, mouse, event);
-    this.updateView(refScene, camera, left, top, width / 2, height, raycaster, mouse, event);
-    this.updateView(cmpScene, camera, left + width / 2, top, width / 2, height, raycaster, mouse, event);
+    if (sceneMode === "lapScene") {
+      this.updateView(this.lapScene, camera, left, top, width, height, raycaster, mouse, event);
+    } else if (sceneMode == "sepScene") {
+      this.updateView(this.refScene, camera, left, top, width / 2, height, raycaster, mouse, event);
+      this.updateView(this.cmpScene, camera, left + width / 2, top, width / 2, height, raycaster, mouse, event);
+    }
 
     //requestAnimationFrame(() => this.update());
   }
@@ -241,12 +268,18 @@ class Renderer extends THREE.WebGLRenderer {
 
     const intersects = raycaster.intersectObjects(scene.children);
 
-    for (const intersect of intersects) {
-      const object = intersect.object;
+    if (intersects.length > 0) {
+      if (this.curIntersected != intersects[0].object) {
+        if (this.curIntersected) this.curIntersected.material.color.setHex(this.curIntersected.currentHex);
 
-      if (object.type !== "GridHelper") {
-        object.material.color.set(0xff0000);
+        this.curIntersected = intersects[0].object;
+        this.curIntersected.currentHex = this.curIntersected.material.color.getHex();
+        this.curIntersected.material.color.setHex(0xff0000);
       }
+    } else {
+      if (this.curIntersected) this.curIntersected.material.color.setHex(this.curIntersected.currentHex);
+
+      this.curIntersected = null;
     }
 
     this.setScissor(left, top, width, height);
@@ -290,6 +323,8 @@ class Scene extends THREE.Scene {
   constructor() {
     super();
 
+    this.background = new THREE.Color("black");
+
     this.add(new THREE.GridHelper(10000, 10));
   }
 
@@ -321,13 +356,17 @@ class Model extends THREE.SkinnedMesh {
     actions[0].play();
   }
 
-  update(actionID, frame) {
-    this.updateMixer(actionID, frame);
-    this.jointHelper.update(actionID, frame);
+  update(playerMode) {
+    this.updateMixer(playerMode);
+
+    this.jointHelper.update(playerMode);
     this.limbHelper.update();
   }
 
-  updateMixer(actionID, frame) {
+  updateMixer(playerMode) {
+    const mode = playerMode.property;
+    const frame = playerMode.getValue();
+    const actionID = mode === "edwFrame" ? 1 : mode === "dtwFrame" ? 2 : 0;
     const mixer = this.mixer;
     const curAction = this.actions[actionID];
 
