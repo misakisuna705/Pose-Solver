@@ -16,18 +16,18 @@ import BVHURL2 from "assets/bvh/data_3d2.bvh";
 // syncWith
 
 class Viewer {
-  constructor({ container, width, height }) {
+  constructor({ container }) {
     const canvas = document.createElement("canvas");
     const bvhsLoaded = [this.load(new BVHLoader(), BVHURL1), this.load(new BVHLoader(), BVHURL2)];
     //const xnectLoaded = this.load(new XNectLoader(), XNECTURL);
 
-    canvas.width = width;
-    canvas.height = height;
+    canvas.width = container.offsetWidth;
+    canvas.height = container.offsetHeight;
 
     container.appendChild(canvas);
 
     Promise.all(bvhsLoaded).then((results) => {
-      const controller = (this.controller = new Controller({ canvas: canvas, bvhs: results }));
+      const controller = (this.controller = new Controller({ container: container, canvas: canvas, bvhs: results }));
 
       controller.update(controller.defaultFrame, "lapScene", "freeCam", "EDW", "all");
     });
@@ -41,11 +41,11 @@ class Viewer {
 }
 
 class Controller extends GUI {
-  constructor({ canvas, bvhs }) {
+  constructor({ container, canvas, bvhs }) {
     super();
 
     // renderer
-    const renderer = (this.renderer = new Renderer({ canvas: canvas }, { bvhs: bvhs }));
+    const renderer = (this.renderer = new Renderer({ canvas: canvas }, { container: container, bvhs: bvhs }));
 
     // controller
     const playerConfs = { defaultFrame: 0, edwFrame: 0, dtwFrame: 0 };
@@ -141,12 +141,12 @@ class Controller extends GUI {
 
     renderer.orbit.addEventListener("change", () => this.renderer.update(undefined, this.getMode(sceneConfs)), false);
 
-    window.addEventListener(
+    container.addEventListener(
       "resize",
       () => this.update(this.curPlayerMode, this.getMode(sceneConfs), this.getMode(cameraConfs), undefined, undefined),
       false
     );
-    window.addEventListener(
+    container.addEventListener(
       "mousemove",
       (event) =>
         this.update(this.curPlayerMode, this.getMode(sceneConfs), this.getMode(cameraConfs), undefined, undefined, event),
@@ -178,7 +178,7 @@ class Controller extends GUI {
 }
 
 class Renderer extends THREE.WebGLRenderer {
-  constructor(parameters, { bvhs }) {
+  constructor(parameters, { container, bvhs }) {
     super(parameters);
 
     // camera
@@ -204,6 +204,7 @@ class Renderer extends THREE.WebGLRenderer {
     const refScene = (this.refScene = new Scene());
     const cmpScene = (this.cmpScene = new Scene());
 
+    this.container = container;
     this.curIntersected = null;
     this.setScissorTest(true);
     this.autoClear = false;
@@ -241,11 +242,12 @@ class Renderer extends THREE.WebGLRenderer {
   }
 
   update(event, sceneMode) {
+    const container = this.container;
     const camera = this.camera;
     const raycaster = this.raycaster;
     const mouse = this.mouse;
 
-    this.setSize(window.innerWidth, window.innerHeight);
+    this.setSize(container.offsetWidth, container.offsetHeight);
 
     const { left, right, top, bottom, width, height } = this.domElement.getBoundingClientRect();
 
