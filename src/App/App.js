@@ -8,7 +8,7 @@ export default class App extends Component {
   render() {
     return (
       <div className="App">
-        <Workspace />
+        <Workspace width={window.innerWidth} height={window.innerHeight}/>
       </div>
     );
   }

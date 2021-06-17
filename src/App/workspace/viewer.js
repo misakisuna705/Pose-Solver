@@ -9,8 +9,10 @@ import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { EDWSolver, DTWSolver } from "App/workspace/solver";
 import { JointHelper, LimbHelper } from "App/workspace/helper";
 
-import BVHURL1 from "assets/bvh/data_3d1.bvh";
-import BVHURL2 from "assets/bvh/data_3d2.bvh";
+//import BVHURL1 from "assets/bvh/data_3d1.bvh";
+import BVHURL1 from "assets/bvh/forehand_coach.bvh";
+//import BVHURL2 from "assets/bvh/data_3d2.bvh";
+import BVHURL2 from "assets/bvh/forehand_user.bvh";
 //import XNECTURL from "assets/xnect/post_raw3D.txt";
 
 // syncWith

@@ -8,7 +8,7 @@ class EDWSolver {
     const refPosMap = ref.getPosMap(minFramesNum);
     const cmpPosMap = cmp.getPosMap(minFramesNum);
     const diffPosMap = getPosDiffMap(cmpPosMap, refPosMap, minFramesNum);
-    const maxDiff = Math.max(...Array().concat.apply([], diffPosMap));
+    const maxDiff = getArrayMax(diffPosMap);
     const { refColorMap, cmpColorMap } = this.getColorMap(refFramesNum, cmpFramesNum, diffPosMap, maxDiff);
 
     this.maxFramesNum = Math.max(refFramesNum, cmpFramesNum);
@@ -83,7 +83,7 @@ class DTWSolver {
     const path = this.getDtwPath(refFramesNum, cmpFramesNum, dtwMap);
     const dtwFramesNum = (this.dtwFramesNum = path.length);
     const diffPosMap = getPosDiffMap(cmpPosMap, refPosMap, dtwFramesNum, path);
-    const maxDiff = Math.max(...Array().concat.apply([], diffPosMap));
+    const maxDiff = getArrayMax(diffPosMap);
     const { refColorMap, cmpColorMap } = this.getColorMap(diffPosMap, maxDiff);
 
     const refPath = [];
@@ -221,6 +221,20 @@ function getPosDiffMap(cmpPosMap, refPosMap, framesNum, path) {
   }
 
   return diffPosMap;
+}
+
+function getArrayMax(arrays) {
+  let max = -Infinity;
+
+  for (const array of arrays) {
+    let subMax = -Infinity;
+
+    for (const element of array) subMax = element > subMax ? element : subMax;
+
+    max = subMax > max ? subMax : max;
+  }
+
+  return max;
 }
 
 export { EDWSolver, DTWSolver };

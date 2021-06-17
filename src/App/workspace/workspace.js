@@ -6,33 +6,39 @@ export default class Workspace extends Component {
     super(props);
 
     this.state = {
-      width: undefined,
-      height: undefined,
+      style: props.style,
+      dimension: {
+        width: props.width,
+        height: props.height,
+      },
+      bvh: {
+        refBvh: props.refBvh,
+        cmpBvh: props.cmpBvh,
+      },
     };
-
-    this.resize = this.resize.bind(this);
   }
 
-  componentWillMount() {
-    this.resize();
-
-    window.removeEventListener("resize", this.resize, false);
+  componentDidUpdate(prevProps) {
+    if (this.props.width != prevProps.width || this.props.height != prevProps.height) {
+      this.setState({
+        dimension: {
+          width: prevProps.width,
+          height: prevProps.height,
+        },
+      });
+    }
   }
 
   componentDidMount() {
     this.viewer = new Viewer({ container: this.element });
-
-    window.addEventListener("resize", this.resize, false);
   }
 
   render() {
-    return <div ref={(element) => (this.element = element)} style={{ width: this.state.width, height: this.state.height }} />;
-  }
-
-  resize() {
-    this.setState({
-      width: window.innerWidth,
-      height: window.innerHeight,
-    });
+    return (
+      <div
+        ref={(element) => (this.element = element)}
+        style={{ width: this.state.dimension.width, height: this.state.dimension.height }}
+      />
+    );
   }
 }
