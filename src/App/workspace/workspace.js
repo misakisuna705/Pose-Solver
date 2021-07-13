@@ -1,44 +1,22 @@
 import React, { Component } from "react";
-import { Viewer } from "App/workspace/viewer";
+import { Viewer } from "App/Workspace/View/viewer";
 
 export default class Workspace extends Component {
   constructor(props) {
     super(props);
 
-    this.state = {
-      style: props.style,
-      dimension: {
-        width: props.width,
-        height: props.height,
-      },
-      bvh: {
-        refBvh: props.refBvh,
-        cmpBvh: props.cmpBvh,
-      },
-    };
-  }
-
-  componentDidUpdate(prevProps) {
-    if (this.props.width != prevProps.width || this.props.height != prevProps.height) {
-      this.setState({
-        dimension: {
-          width: prevProps.width,
-          height: prevProps.height,
-        },
-      });
-    }
-  }
-
-  componentDidMount() {
-    this.viewer = new Viewer({ container: this.element });
+    this.element = undefined;
   }
 
   render() {
     return (
-      <div
-        ref={(element) => (this.element = element)}
-        style={{ width: this.state.dimension.width, height: this.state.dimension.height }}
-      />
+      <div style={{ height: "100%" }}>
+        <div ref={(element) => (this.element = element)} style={{ height: "100%" }} />
+      </div>
     );
+  }
+
+  componentDidMount() {
+    this.viewer = new Viewer({ container: this.element });
   }
 }
