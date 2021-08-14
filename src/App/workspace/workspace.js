@@ -50,11 +50,11 @@ export default withStyles(styles, { withTheme: true })(
         playback: {
           isPlay: false,
           isLoop: false,
-          frame: [0, 0, 100],
+          frame: [0, 0, 5000],
         },
 
         timeSlice: {
-          time: [[0, 0, 100]],
+          time: [[0, 0, 5000]],
         },
 
         formats: ["bold", "italic"],
@@ -80,7 +80,7 @@ export default withStyles(styles, { withTheme: true })(
       return (
         <div
           id="drawer-container"
-          style={{ width: "100%", height: "100%", position: "relative", display: "flex", overflowY: "scroll" }}
+          style={{ width: "100%", height: "100%", position: "relative", display: "flex", overflow: "hidden" }}
         >
           <ModePicker mode={this.state.mode} updateSceneMode={this.updateSceneMode} updateCameraMode={this.updateCameraMode} />
 
@@ -156,15 +156,15 @@ export default withStyles(styles, { withTheme: true })(
     }
 
     updateFramePos(frame) {
+      //console.log(this.state.timeSlice.time);
+      console.log(frame);
+
       this.setState({ playback: { ...this.state.playback, frame: frame } });
 
       this.viewer.updateModel(frame[1]);
     }
 
     createTimeSlice(frame) {
-      console.log(frame);
-      console.log(this.state.timeSlice.time[0]);
-
       if (this.state.timeSlice.time.includes(frame)) return;
 
       this.setState({ timeSlice: { ...this.state.timeSlice, time: [...this.state.timeSlice.time, frame] } });

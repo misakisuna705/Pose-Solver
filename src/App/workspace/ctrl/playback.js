@@ -26,10 +26,16 @@ export default class Playback extends Component {
           <Grid item>{playback.frame[1]}</Grid>
 
           <Grid item xs>
-            <Range allowCross={false} defaultValue={playback.frame} value={playback.frame} onChange={props.updateFramePos} />
+            <Range
+              allowCross={false}
+              max={5000}
+              defaultValue={playback.frame}
+              value={playback.frame}
+              onChange={props.updateFramePos}
+            />
           </Grid>
 
-          <Grid item>100</Grid>
+          <Grid item>5000</Grid>
 
           <Grid item>
             <IconButton

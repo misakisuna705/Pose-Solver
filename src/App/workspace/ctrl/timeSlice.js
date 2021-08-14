@@ -77,10 +77,10 @@ export default withStyles(styles, { withTheme: true })(
       const timeSlice = props.timeSlice;
 
       const handleChange = (panel) => (event, isExpanded) => {
-        console.log(panel);
-
         this.setState({ expanded: isExpanded ? panel : false });
 
+        props.updateFramePos(panel);
+        props.updateFramePos(panel);
         props.updateFramePos(panel);
       };
 
