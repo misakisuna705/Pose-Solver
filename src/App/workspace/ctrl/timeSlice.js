@@ -61,8 +61,6 @@ export default withStyles(styles, { withTheme: true })(
       this.state = {
         mobileOpen: false,
         open: false,
-        cameraModeOpen: false,
-        cameraModeIndex: 0,
         expanded: false,
       };
 
@@ -79,6 +77,8 @@ export default withStyles(styles, { withTheme: true })(
       const timeSlice = props.timeSlice;
 
       const handleChange = (panel) => (event, isExpanded) => {
+        console.log(panel);
+
         this.setState({ expanded: isExpanded ? panel : false });
 
         props.updateFramePos(panel);
@@ -89,8 +89,8 @@ export default withStyles(styles, { withTheme: true })(
           {timeSlice.time.map((text, index) => (
             <Accordion key={text} expanded={this.state.expanded === text} onChange={handleChange(text)}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="panel2bh-content" id="panel2bh-header">
-                <Typography className={classes.heading}>Time all</Typography>
-                <Typography className={classes.secondaryHeading}>xx:xx ~ xx:xx</Typography>
+                <Typography className={classes.heading}>{"frame " + index}</Typography>
+                <Typography className={classes.secondaryHeading}>{text[0] + " " + text[1] + " " + text[2]}</Typography>
               </AccordionSummary>
               <AccordionDetails>
                 <IconButton

@@ -54,11 +54,7 @@ export default withStyles(styles, { withTheme: true })(
         },
 
         timeSlice: {
-          time: [
-            [10, 20, 90],
-            [20, 40, 80],
-            [30, 50, 70],
-          ],
+          time: [[0, 0, 100]],
         },
 
         formats: ["bold", "italic"],
@@ -166,6 +162,11 @@ export default withStyles(styles, { withTheme: true })(
     }
 
     createTimeSlice(frame) {
+      console.log(frame);
+      console.log(this.state.timeSlice.time[0]);
+
+      if (this.state.timeSlice.time.includes(frame)) return;
+
       this.setState({ timeSlice: { ...this.state.timeSlice, time: [...this.state.timeSlice.time, frame] } });
     }
 

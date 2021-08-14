@@ -23,11 +23,13 @@ export default class Playback extends Component {
             <IconButton onClick={props.updatePlayMode}>{playback.isPlay ? <PauseIcon /> : <PlayArrowIcon />}</IconButton>
           </Grid>
 
-          <Grid item>"00:00"</Grid>
+          <Grid item>{playback.frame[1]}</Grid>
 
           <Grid item xs>
             <Range allowCross={false} defaultValue={playback.frame} value={playback.frame} onChange={props.updateFramePos} />
           </Grid>
+
+          <Grid item>100</Grid>
 
           <Grid item>
             <IconButton
