@@ -137,10 +137,10 @@ class Viewer extends THREE.WebGLRenderer {
 
     // raws
     const refPose = raws[0];
-    const refSkin = raws[1];
-    const refRacket = raws[2];
-    const cmpPose = raws[3];
-    const cmpSkin = raws[4];
+    const cmpPose = raws[1];
+    //const refSkin = raws[2];
+    //const cmpSkin = raws[3];
+    //const refRacket = raws[4];
     //const cmpRacket = raw[5];
     // camera
     const camera = (this.camera = new Camera({ fov: 60, aspect: 640 / 360, near: 0.1, far: 50000 }));
@@ -149,8 +149,8 @@ class Viewer extends THREE.WebGLRenderer {
     this.mouse = new THREE.Vector2();
     this.raycaster = new THREE.Raycaster();
     // model
-    const refModel = (this.refModel = new Model({ pose: refPose, skin: refSkin, racket: refRacket, opacity: 0.3 }));
-    const cmpModel = (this.cmpModel = new Model({ pose: cmpPose, skin: cmpSkin, racket: undefined, opacity: 1 }));
+    const refModel = (this.refModel = new Model({ opacity: 0.3, pose: refPose, skin: undefined, racket: undefined }));
+    const cmpModel = (this.cmpModel = new Model({ opacity: 1, pose: cmpPose, skin: undefined, racket: undefined }));
     // solver
     this.edwSolver = new EDWSolver({ ref: refModel, cmp: cmpModel });
     this.dtwSolver = new DTWSolver({ ref: refModel, cmp: cmpModel });
@@ -344,23 +344,26 @@ class Scene extends THREE.Scene {
 }
 
 class Model extends THREE.Group {
-  constructor({ pose, skin, racket, opacity }) {
+  constructor({ opacity, pose, skin, racket }) {
     super();
 
     const clip = pose.clip;
     const skeleton = pose.skeleton;
 
+    //if (skin.animations[0].tracks.length === 215) for (let j = 0; j < 72; j++) skin.animations[0].tracks.shift(); // tricky
+
     this.normalizePose(clip.tracks);
-    this.normalizeSkin(skin.animations[0].tracks);
+    //this.normalizeSkin(skin.animations[0].tracks);
 
     const poseMixer = (this.poseMixer = new THREE.AnimationMixer(this));
     const animations = (this.animations = [clip]);
     const actions = (this.actions = [poseMixer.clipAction(animations[0])]);
-    const skinMixer = (this.skinMixer = new THREE.AnimationMixer(skin));
-    const skinAction = (this.skinAction = skinMixer.clipAction(skin.animations[0]));
+    //const skinMixer = (this.skinMixer = new THREE.AnimationMixer(skin));
+    //const skinActions = (this.skinActions = [skinMixer.clipAction(skin.animations[0])]);
     //const racketMixer = new THREE.AnimationMixer(racket);
-    //const racketAction = racketMixer.clipAction(racket.animations[0])
+    //const racketActions = this.racketActions = [racketMixer.clipAction(racket.animations[0])];
 
+    //this.skin = skin;
     this.clipBones = this.getBones(skeleton.bones[0].clone(), "clip");
     this.skeleton = skeleton;
     this.jointHelper = new JointHelper({ bones: this.clipBones, clip: this.animations[0], opacity: opacity });
@@ -371,17 +374,17 @@ class Model extends THREE.Group {
 
     this.add(this.jointHelper);
     this.add(this.limbHelper);
-    this.add(skin);
+    //this.add(skin);
     //this.add(racket);
 
     actions[0].play();
-    skinAction.play();
+    //skinActions[0].play();
     //racketAction.play();
   }
 
   update(frame) {
     this.updateMixer(frame);
-    this.updateSkinMixer(frame);
+    //this.updateSkinMixer(frame);
 
     this.jointHelper.update(frame);
     this.limbHelper.update();
@@ -401,15 +404,12 @@ class Model extends THREE.Group {
   }
 
   updateSkinMixer(frame) {
-    const actionID = 2;
-    const mixer = this.skinMixer;
-    const curAction = this.skinAction;
-
-    mixer.stopAllAction();
-
-    curAction.play();
-
-    mixer.setTime(curAction.getClip().tracks[0].times[frame]);
+    //const actionID = 2;
+    //const mixer = this.skinMixer;
+    //const curAction = this.skinActions[actionID];
+    //mixer.stopAllAction();
+    //curAction.play();
+    //mixer.setTime(curAction.getClip().tracks[0].times[frame]);
   }
 
   normalizePose(tracks) {
@@ -493,6 +493,12 @@ class Model extends THREE.Group {
     this.actions.push(this.poseMixer.clipAction(animation));
   }
 
+  createSkinAction(name, path) {
+    //const animation = this.createSkinAnimation(name, path);
+    //this.skin.animations.push(animation);
+    //this.skinActions.push(this.skinMixer.clipAction(animation));
+  }
+
   createAnimation(colorsMap, name, path) {
     const bones = this.clipBones;
     const bonesNum = bones.length;
@@ -537,6 +543,45 @@ class Model extends THREE.Group {
     }
 
     return new THREE.AnimationClip(name, -1, tracks);
+  }
+
+  createSkinAnimation(name, path) {
+    //const bones = this.clipBones;
+    //const bonesNum = bones.length;
+    //const clipTracks = this.skin.animations[0].tracks;
+    //const clipTimes = clipTracks[0].times;
+    //const tracks = [];
+    //if (path) {
+    //const framesNum = path.length;
+    //const delta = clipTimes[1] - clipTimes[0];
+    //const times = [];
+    //for (const i of Array(framesNum).keys()) times[i] = !i ? 0 : times[i - 1] + delta;
+    //for (const i of Array(bonesNum).keys()) {
+    //const positions = [];
+    //const rotations = [];
+    //for (const j of Array(framesNum).keys()) {
+    //positions.push(clipTracks[i * 2 + 0].values[path[j] * 3 + 0]);
+    //positions.push(clipTracks[i * 2 + 0].values[path[j] * 3 + 1]);
+    //positions.push(clipTracks[i * 2 + 0].values[path[j] * 3 + 2]);
+    //rotations.push(clipTracks[i * 2 + 1].values[path[j] * 4 + 0]);
+    //rotations.push(clipTracks[i * 2 + 1].values[path[j] * 4 + 1]);
+    //rotations.push(clipTracks[i * 2 + 1].values[path[j] * 4 + 2]);
+    //rotations.push(clipTracks[i * 2 + 1].values[path[j] * 4 + 3]);
+    //}
+    //tracks[i * 2 + 0] = new THREE.VectorKeyframeTrack(bones[i].name + ".position", times, positions);
+    //tracks[i * 2 + 1] = new THREE.QuaternionKeyframeTrack(bones[i].name + ".quaternion", times, rotations);
+    //}
+    //} else {
+    //for (const i of Array(bonesNum).keys()) {
+    //tracks[i * 2 + 0] = new THREE.VectorKeyframeTrack(bones[i].name + ".position", clipTimes, clipTracks[i * 2 + 0].values);
+    //tracks[i * 2 + 1] = new THREE.QuaternionKeyframeTrack(
+    //bones[i].name + ".quaternion",
+    //clipTimes,
+    //clipTracks[i * 2 + 1].values
+    //);
+    //}
+    //}
+    //return new THREE.AnimationClip(name, -1, tracks);
   }
 }
 

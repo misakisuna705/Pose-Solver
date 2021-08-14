@@ -13,13 +13,13 @@ import TimeSlice from "App/workspace/ctrl/timeSlice.js";
 import Playback from "App/workspace/ctrl/playback.js";
 import ButtonToggler from "App/workspace/ctrl/buttonToggler.js";
 
-import COACH_SKELETON from "assets/coach3/skeleton.bvh";
 //import COACH_SKELETON from "assets/bvh/data_3d1.bvh";
-import COACH_SKIN from "assets/coach3/skin.fbx";
-import COACH_RACKET from "assets/coach3/racket.fbx";
-import PLAYER_SKELETON from "assets/coach2/skeleton.bvh";
 //import PLAYER_SKELETON from "assets/bvh/data_3d2.bvh";
-import PLAYER_SKIN from "assets/coach2/skin.fbx";
+import COACH_SKELETON from "assets/coach3/skeleton.bvh";
+import PLAYER_SKELETON from "assets/coach2/skeleton.bvh";
+//import COACH_SKIN from "assets/coach3/skin.fbx";
+//import PLAYER_SKIN from "assets/coach2/skin.fbx";
+//import COACH_RACKET from "assets/coach3/racket.fbx";
 //import PLAYER_RACKET from "assets/coach2/racket.fbx";
 
 //import XNECTURL from "assets/xnect/post_raw3D.txt";
@@ -76,12 +76,6 @@ export default withStyles(styles, { withTheme: true })(
       this.updateFramePos = this.updateFramePos.bind(this);
       this.createTimeSlice = this.createTimeSlice.bind(this);
       this.deleteTimeSlice = this.deleteTimeSlice.bind(this);
-
-      this.handleFormat = this.handleFormat.bind(this);
-    }
-
-    handleFormat(event, newFormats) {
-      this.setState({ formats: newFormats });
     }
 
     render() {
@@ -95,8 +89,6 @@ export default withStyles(styles, { withTheme: true })(
           <ModePicker mode={this.state.mode} updateSceneMode={this.updateSceneMode} updateCameraMode={this.updateCameraMode} />
 
           <div style={{ overflow: "hidden", flexGrow: 1, display: "flex", flexDirection: "column" }}>
-            <ButtonToggler />
-
             <div ref={(element) => (this.element = element)} style={{ overflow: "hidden", flexGrow: 1 }}></div>
 
             <Playback
@@ -123,12 +115,11 @@ export default withStyles(styles, { withTheme: true })(
 
     componentDidMount() {
       const rawsLoaded = [
-        //this.load(new BVHLoader(), "http://140.114.79.180:9491/files/coach_model_3.bvh"),
         this.load(new BVHLoader(), COACH_SKELETON),
-        this.load(new FBXLoader(), COACH_SKIN),
-        this.load(new FBXLoader(), COACH_RACKET),
         this.load(new BVHLoader(), PLAYER_SKELETON),
-        this.load(new FBXLoader(), PLAYER_SKIN),
+        //this.load(new FBXLoader(), COACH_SKIN),
+        //this.load(new FBXLoader(), PLAYER_SKIN),
+        //this.load(new FBXLoader(), COACH_RACKET),
       ];
 
       Promise.all(rawsLoaded).then((raws) => {
@@ -172,20 +163,16 @@ export default withStyles(styles, { withTheme: true })(
       this.setState({ playback: { ...this.state.playback, frame: frame } });
 
       this.viewer.updateModel(frame[1]);
-
-      //console.log(this.state.timeSlice.time);
     }
 
     createTimeSlice(frame) {
       this.setState({ timeSlice: { ...this.state.timeSlice, time: [...this.state.timeSlice.time, frame] } });
-
-      //console.log(this.state.timeSlice.time);
     }
 
     deleteTimeSlice(index) {
       this.setState({ timeSlice: { ...this.state.timeSlice, time: this.state.timeSlice.time.filter((_, i) => i !== index) } });
-
-      //console.log(this.state.timeSlice.time);
     }
   }
 );
+
+//<ButtonToggler />;

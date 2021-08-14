@@ -15,7 +15,8 @@ class EDWSolver {
 
     ref.createAction(refColorMap, "edw animation");
     cmp.createAction(cmpColorMap, "edw animation");
-
+    //ref.createSkinAction("edw animation");
+    //cmp.createSkinAction("edw animation");
     ref.jointHelper.createAction(refColorMap, "edw jointsAnimation");
     cmp.jointHelper.createAction(cmpColorMap, "edw jointsAnimation");
 
@@ -95,7 +96,8 @@ class DTWSolver {
 
     ref.createAction(refColorMap, "dtw animation", refPath);
     cmp.createAction(cmpColorMap, "dtw animation", cmpPath);
-
+    //ref.createSkinAction("dtw animation", refPath);
+    //cmp.createSkinAction("dtw animation", cmpPath);
     ref.jointHelper.createAction(refColorMap, "dtw jointsAnimation", refPath);
     cmp.jointHelper.createAction(cmpColorMap, "dtw jointsAnimation", cmpPath);
 
