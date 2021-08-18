@@ -9,128 +9,6 @@ import { JointHelper, LimbHelper } from "App/workspace/view/helper";
 
 // syncWith
 
-//class Controller extends GUI {
-//constructor({ container, raws }) {
-//super();
-
-// renderer
-//const renderer = (this.renderer = new Viewer({ container: container, raws: raws }));
-
-//container.appendChild(renderer.domElement);
-
-// controller
-//const playerConfs = { defaultFrame: 0, edwFrame: 0, dtwFrame: 0 };
-//const sceneConfs = (this.sceneConfs = { lapScene: true, sepScene: false });
-//const cameraConfs = (this.cameraConfs = {
-//freeCam: true,
-//frontCam: false,
-//backCam: false,
-//topCam: false,
-//downCam: false,
-//leftCam: false,
-//rightCam: false,
-//});
-//const solverConfs = (this.solverConfs = { default: true, EDW: false, DTW: false });
-//const selectConfs = (this.selectConfs = { all: true, part: false });
-//const btnConfs = {
-//resolve: () => {
-//console.log("clicked");
-//},
-//};
-//const panel = this.addFolder("Panel");
-
-//const sceneFolder = panel.addFolder("Scene Mode");
-//const cameraFolder = panel.addFolder("Camera Mode");
-//const selectFolder = panel.addFolder("Select Mode");
-//const solverFolder = panel.addFolder("Solver Mode");
-//const playerFolder = panel.addFolder("Player");
-
-//const defaultFrame = (this.defaultFrame = playerFolder.add(
-//playerConfs,
-//"defaultFrame",
-//0,
-//renderer.edwSolver.maxFramesNum - 1,
-//1
-//));
-//const edwFrame = (this.edwFrame = playerFolder.add(playerConfs, "edwFrame", 0, renderer.edwSolver.maxFramesNum - 1, 1));
-//const dtwFrame = (this.dtwFrame = playerFolder.add(playerConfs, "dtwFrame", 0, renderer.dtwSolver.dtwFramesNum - 1, 1));
-
-//playerFolder.add(btnConfs, "resolve").name("recalculate");
-
-//const sceneModes = [
-//sceneFolder.add(sceneConfs, "lapScene").name("overlap scene"),
-//sceneFolder.add(sceneConfs, "sepScene").name("seperate scene"),
-//];
-//const cameraModes = [
-//cameraFolder.add(cameraConfs, "freeCam").name("free camera"),
-//cameraFolder.add(cameraConfs, "frontCam").name("front camera"),
-//cameraFolder.add(cameraConfs, "backCam").name("back camera"),
-//cameraFolder.add(cameraConfs, "leftCam").name("left camera"),
-//cameraFolder.add(cameraConfs, "rightCam").name("right camera"),
-//cameraFolder.add(cameraConfs, "topCam").name("top camera"),
-//cameraFolder.add(cameraConfs, "downCam").name("down camera"),
-//];
-//const selectModes = [
-//selectFolder.add(selectConfs, "all").name("full skeleton"),
-//selectFolder.add(selectConfs, "part").name("partial bones"),
-//];
-//const solverModes = [
-//solverFolder.add(solverConfs, "default").name("Default View"),
-//solverFolder.add(solverConfs, "EDW").name("Euclidean Distance Warping"),
-//solverFolder.add(solverConfs, "DTW").name("Dynamic Time Warping"),
-//];
-
-//this.curFrame = undefined;
-
-//panel.open();
-//sceneFolder.open();
-//cameraFolder.open();
-//selectFolder.open();
-//playerFolder.open();
-
-// listener
-//defaultFrame
-//.listen()
-//.onChange((frame) => this.update(defaultFrame, this.getMode(sceneConfs), this.getMode(cameraConfs), undefined, undefined));
-//edwFrame
-//.listen()
-//.onChange((frame) => this.update(edwFrame, this.getMode(sceneConfs), this.getMode(cameraConfs), undefined, undefined));
-//dtwFrame
-//.listen()
-//.onChange((frame) => this.update(dtwFrame, this.getMode(sceneConfs), this.getMode(cameraConfs), undefined, undefined));
-
-//for (const mode of sceneModes)
-//mode
-//.listen()
-//.onChange(() => this.update(this.curFrame, mode.property, this.getMode(cameraConfs), undefined, undefined));
-//for (const mode of cameraModes)
-//mode
-//.listen()
-//.onChange(() => this.update(this.curFrame, this.getMode(sceneConfs), mode.property, undefined, undefined));
-//for (const mode of selectModes)
-//mode.listen().onChange(() => this.update(frame.getValue(), undefined, undefined, undefined, mode.property));
-//}
-
-//update(frame, sceneMode, cameraMode, solverMode, selectMode, event) {
-//this.curFrame = frame;
-
-//this.updateMode(cameraMode, this.cameraConfs);
-//this.updateMode(sceneMode, this.sceneConfs);
-//this.updateMode(solverMode, this.solverConfs);
-//this.updateMode(selectMode, this.selectConfs);
-
-//this.renderer.update(frame, sceneMode, cameraMode, event);
-//}
-
-//getMode(confs) {
-//for (const conf in confs) if (confs[conf]) return conf;
-//}
-
-//updateMode(mode, confs) {
-//for (const conf in confs) confs[conf] = conf === mode ? true : false;
-//}
-//}
-
 class Viewer extends THREE.WebGLRenderer {
   constructor({ container, raws }) {
     super();
@@ -149,7 +27,7 @@ class Viewer extends THREE.WebGLRenderer {
     this.mouse = new THREE.Vector2();
     this.raycaster = new THREE.Raycaster();
     // model
-    const refModel = (this.refModel = new Model({ opacity: 0.3, pose: refPose, skin: undefined, racket: undefined }));
+    const refModel = (this.refModel = new Model({ opacity: 0.45, pose: refPose, skin: undefined, racket: undefined }));
     const cmpModel = (this.cmpModel = new Model({ opacity: 1, pose: cmpPose, skin: undefined, racket: undefined }));
     // solver
     this.edwSolver = new EDWSolver({ ref: refModel, cmp: cmpModel });
@@ -330,7 +208,8 @@ class Scene extends THREE.Scene {
   constructor() {
     super();
 
-    this.background = new THREE.Color("grey");
+    //this.background = new THREE.Color("grey");
+    this.background = new THREE.Color("black");
     //this.background = new THREE.Color("white");
 
     this.add(new THREE.GridHelper(10000, 10));
@@ -413,6 +292,16 @@ class Model extends THREE.Group {
   }
 
   normalizePose(tracks) {
+    const tracksNum = tracks.length;
+
+    for (const i of Array(tracksNum / 2).keys()) {
+      tracks[i * 2 + 0].times = tracks[i * 2 + 0].times.reverse().subarray(2).reverse();
+      tracks[i * 2 + 0].values = tracks[i * 2 + 0].values.subarray(3).reverse().subarray(3).reverse();
+
+      tracks[i * 2 + 1].times = tracks[i * 2 + 1].times.reverse().subarray(2).reverse();
+      tracks[i * 2 + 1].values = tracks[i * 2 + 1].values.subarray(4).reverse().subarray(4).reverse();
+    }
+
     for (const track of tracks) {
       if (track.ValueTypeName === "vector") {
         const originValues = tracks[0].values;

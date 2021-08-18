@@ -14,6 +14,7 @@ export default class Header extends Component {
               marginLeft: "10px",
             }}
             src={LOGOURL}
+            alt="logo"
           />
         </Navbar.Brand>
 

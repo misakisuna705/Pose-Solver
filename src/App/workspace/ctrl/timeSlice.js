@@ -90,7 +90,14 @@ export default withStyles(styles, { withTheme: true })(
             <Accordion key={text} expanded={this.state.expanded === text} onChange={handleChange(text)}>
               <AccordionSummary expandIcon={<ExpandMoreIcon />} aria-controls="panel2bh-content" id="panel2bh-header">
                 <Typography className={classes.heading}>{"frame " + index}</Typography>
-                <Typography className={classes.secondaryHeading}>{text[0] + " " + text[1] + " " + text[2]}</Typography>
+
+                <Typography className={classes.secondaryHeading}>
+                  {String(text[0]).padStart(4, "0") +
+                    " " +
+                    String(text[1]).padStart(4, "0") +
+                    " " +
+                    String(text[2]).padStart(4, "0")}
+                </Typography>
               </AccordionSummary>
               <AccordionDetails>
                 <IconButton

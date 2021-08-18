@@ -5,18 +5,22 @@ import Backdrop from "@material-ui/core/Backdrop";
 import CircularProgress from "@material-ui/core/CircularProgress";
 
 import { BVHLoader } from "three/examples/jsm/loaders/BVHLoader.js";
-import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
+//import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 
 import { Viewer } from "App/workspace/view/viewer.js";
 import ModePicker from "App/workspace/ctrl/modePicker.js";
 import TimeSlice from "App/workspace/ctrl/timeSlice.js";
 import Playback from "App/workspace/ctrl/playback.js";
-import ButtonToggler from "App/workspace/ctrl/buttonToggler.js";
+//import ButtonToggler from "App/workspace/ctrl/buttonToggler.js";
 
 //import COACH_SKELETON from "assets/bvh/data_3d1.bvh";
-//import PLAYER_SKELETON from "assets/bvh/data_3d2.bvh";
 import COACH_SKELETON from "assets/coach3/skeleton.bvh";
-import PLAYER_SKELETON from "assets/coach2/skeleton.bvh";
+//import PLAYER_SKELETON from "assets/bvh/data_3d2.bvh";
+//import PLAYER_SKELETON from "assets/coach2/skeleton.bvh";
+//import PLAYER_SKELETON from "assets/player/skeleton.bvh";
+//import PLAYER_SKELETON from "assets/player/User1Char00.bvh";
+//import PLAYER_SKELETON from "assets/player/User2Char00.bvh";
+import PLAYER_SKELETON from "assets/player/User3_Char00.bvh";
 //import COACH_SKIN from "assets/coach3/skin.fbx";
 //import PLAYER_SKIN from "assets/coach2/skin.fbx";
 //import COACH_RACKET from "assets/coach3/racket.fbx";
@@ -50,11 +54,14 @@ export default withStyles(styles, { withTheme: true })(
         playback: {
           isPlay: false,
           isLoop: false,
-          frame: [0, 0, 5000],
+          maxValue: 100,
+          curFrame: [0, 0, 100],
+          badValue: [],
+          badColor: [],
         },
 
         timeSlice: {
-          time: [[0, 0, 5000]],
+          time: [],
         },
 
         formats: ["bold", "italic"],
@@ -125,7 +132,24 @@ export default withStyles(styles, { withTheme: true })(
 
         viewer.init(this.state.playback.curFrame, this.state.mode.sceneMode, this.state.mode.cameraMode);
 
-        this.setState({ isViewerReady: true });
+        const max = raws[1].clip.tracks[0].times.length;
+        const bad = viewer.dtwSolver.poseColorArray;
+        const num = bad.length;
+        const color = [{ backgroundColor: "red" }, null];
+
+        for (let i = 2; i < num; i++) {
+          if (color[i - 1] === null) {
+            color[i] = { backgroundColor: "red" };
+          } else {
+            color[i] = null;
+          }
+        }
+
+        this.setState({
+          isViewerReady: true,
+          playback: { ...this.state.playback, maxValue: max, curFrame: [0, 0, max], badValue: bad, badColor: color },
+          timeSlice: { ...this.state.timeSlice, time: [...this.state.timeSlice.time, [0, 0, max]] },
+        });
       });
     }
 
@@ -156,10 +180,7 @@ export default withStyles(styles, { withTheme: true })(
     }
 
     updateFramePos(frame) {
-      //console.log(this.state.timeSlice.time);
-      console.log(frame);
-
-      this.setState({ playback: { ...this.state.playback, frame: frame } });
+      this.setState({ playback: { ...this.state.playback, curFrame: frame } });
 
       this.viewer.updateModel(frame[1]);
     }

@@ -23,24 +23,32 @@ export default class Playback extends Component {
             <IconButton onClick={props.updatePlayMode}>{playback.isPlay ? <PauseIcon /> : <PlayArrowIcon />}</IconButton>
           </Grid>
 
-          <Grid item>{playback.frame[1]}</Grid>
+          <Grid item>{String(playback.curFrame[1]).padStart(4, "0")}</Grid>
 
           <Grid item xs>
             <Range
               allowCross={false}
-              max={5000}
-              defaultValue={playback.frame}
-              value={playback.frame}
+              max={playback.maxValue}
+              defaultValue={playback.curFrame}
+              value={playback.curFrame}
               onChange={props.updateFramePos}
+            />
+
+            <Range
+              max={playback.maxValue}
+              defaultValue={playback.curFrame}
+              value={playback.badValue}
+              trackStyle={playback.badColor}
+              disabled
             />
           </Grid>
 
-          <Grid item>5000</Grid>
+          <Grid item>{String(playback.curFrame[2]).padStart(4, "0")}</Grid>
 
           <Grid item>
             <IconButton
               onClick={(event) => {
-                props.createTimeSlice(playback.frame);
+                props.createTimeSlice(playback.curFrame);
               }}
             >
               <PlaylistAddIcon />

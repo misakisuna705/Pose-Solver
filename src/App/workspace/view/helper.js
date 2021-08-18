@@ -6,7 +6,7 @@ class JointHelper extends THREE.Group {
     super();
 
     const joints = (this.joints = []);
-    const geometry = new THREE.SphereBufferGeometry(3, 10, 10);
+    const geometry = new THREE.SphereBufferGeometry(2);
 
     for (const bone of bones) joints.push(this.createJoint(geometry, bone, opacity));
 
@@ -92,12 +92,15 @@ class JointHelper extends THREE.Group {
       const framesNum = path.length;
       const delta = clipTimes[1] - clipTimes[0];
       const times = [];
+      const colors = [];
 
       for (const i of Array(framesNum).keys()) times[i] = !i ? 0 : times[i - 1] + delta;
 
       for (const i of Array(jointsNum).keys()) {
         const positions = [];
         const rotations = [];
+
+        colors[i] = [];
 
         for (const j of Array(framesNum).keys()) {
           positions.push(clipTracks[i * 2 + 0].values[path[j] * 3 + 0]);
@@ -108,11 +111,15 @@ class JointHelper extends THREE.Group {
           rotations.push(clipTracks[i * 2 + 1].values[path[j] * 4 + 1]);
           rotations.push(clipTracks[i * 2 + 1].values[path[j] * 4 + 2]);
           rotations.push(clipTracks[i * 2 + 1].values[path[j] * 4 + 3]);
+
+          colors[i].push(colorsMap[i][path[j] * 3 + 0]);
+          colors[i].push(colorsMap[i][path[j] * 3 + 1]);
+          colors[i].push(colorsMap[i][path[j] * 3 + 2]);
         }
 
         tracks[i * 3 + 0] = new THREE.VectorKeyframeTrack(joints[i].name + ".position", times, positions);
         tracks[i * 3 + 1] = new THREE.QuaternionKeyframeTrack(joints[i].name + ".quaternion", times, rotations);
-        tracks[i * 3 + 2] = new THREE.ColorKeyframeTrack(joints[i].name + ".material.color", times, colorsMap[i]);
+        tracks[i * 3 + 2] = new THREE.ColorKeyframeTrack(joints[i].name + ".material.color", times, colors[i]);
       }
     } else {
       for (const i of Array(jointsNum).keys()) {
@@ -148,11 +155,13 @@ class LimbHelper extends LineSegments2 {
     for (const i of Array(limbs.length).keys()) {
       let color = undefined;
 
-      if (i < 8) color = new THREE.Color("purple");
-      else if (i < 16) color = new THREE.Color("dodgerblue");
-      else if (i < 24) color = new THREE.Color("mediumpurple");
-      else if (i < 32) color = new THREE.Color("deepskyblue");
-      else color = new THREE.Color("magenta");
+      //if (i < 8) color = new THREE.Color("purple");
+      //else if (i < 16) color = new THREE.Color("dodgerblue");
+      //else if (i < 24) color = new THREE.Color("mediumpurple");
+      //else if (i < 32) color = new THREE.Color("deepskyblue");
+      //else color = new THREE.Color("magenta");
+
+      color = new THREE.Color(0x77898e);
 
       colors.push(color.r, color.g, color.b);
 
