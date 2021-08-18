@@ -179,7 +179,7 @@ class Camera extends THREE.PerspectiveCamera {
   constructor({ fov, aspect, near, far }) {
     super(fov, aspect, near, far);
 
-    this.position.set(0, 100, 300);
+    this.position.set(0, 100, -300);
 
     //this.layers.enable(0); // enabled by default
 
@@ -191,12 +191,11 @@ class Camera extends THREE.PerspectiveCamera {
   update(canvas, mode) {
     const position = this.position;
 
-    if (mode === 1) position.set(0, 100, 300);
-    if (mode === 2) position.set(0, 100, -300);
-    if (mode === 3) position.set(-300, 100, 0);
-    if (mode === 4) position.set(300, 100, 0);
+    if (mode === 1) position.set(0, 100, -300);
+    if (mode === 2) position.set(0, 100, 300);
+    if (mode === 3) position.set(300, 100, 0);
+    if (mode === 4) position.set(-300, 100, 0);
     if (mode === 5) position.set(0, 300, 0);
-    if (mode === 6) position.set(0, -300, 0);
 
     this.aspect = canvas.clientWidth / canvas.clientHeight;
 

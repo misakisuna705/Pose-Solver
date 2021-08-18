@@ -14,6 +14,11 @@ import DeleteIcon from "@material-ui/icons/Delete";
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import MenuIcon from "@material-ui/icons/Menu";
 
+import EditIcon from "@material-ui/icons/Edit";
+import DoneIcon from "@material-ui/icons/Done";
+import MicIcon from '@material-ui/icons/Mic';
+import StopIcon from '@material-ui/icons/Stop';
+
 const drawerWidth = 240;
 
 const styles = (theme) => ({
@@ -99,6 +104,7 @@ export default withStyles(styles, { withTheme: true })(
                     String(text[2]).padStart(4, "0")}
                 </Typography>
               </AccordionSummary>
+
               <AccordionDetails>
                 <IconButton
                   onClick={(event) => {
@@ -106,6 +112,22 @@ export default withStyles(styles, { withTheme: true })(
                   }}
                 >
                   <DeleteIcon />
+                </IconButton>
+
+                <IconButton onClick={(event) => {}}>
+                  <EditIcon />
+                </IconButton>
+
+                <IconButton onClick={(event) => {}}>
+                  <DoneIcon />
+                </IconButton>
+
+                <IconButton onClick={(event) => {}}>
+                  <MicIcon />
+                </IconButton>
+
+                <IconButton onClick={(event) => {}}>
+                  <StopIcon />
                 </IconButton>
               </AccordionDetails>
             </Accordion>

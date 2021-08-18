@@ -231,19 +231,6 @@ export default withStyles(styles, { withTheme: true })(
 
                   <ListItemText primary={"Top Camera"} />
                 </ListItem>
-
-                <ListItem
-                  key={"Bottom Camera"}
-                  button
-                  onClick={(event) => this.updateCameraMode(event, 6)}
-                  selected={mode.cameraMode === 6}
-                >
-                  <ListItemIcon>
-                    <BorderBottomIcon />
-                  </ListItemIcon>
-
-                  <ListItemText primary={"Bottom Camera"} />
-                </ListItem>
               </List>
             </Collapse>
           </List>
