@@ -31,6 +31,7 @@ class EDWSolver {
     const bonesNum = diffPosMap.length;
     const refColorMap = [];
     const cmpColorMap = [];
+    const threeColor = new THREE.Color(0x7192a5);
 
     for (const i of Array(bonesNum).keys()) {
       refColorMap[i] = [];
@@ -42,18 +43,19 @@ class EDWSolver {
         cmpColorMap[i][j * 3 + 0] = 0 <= score && score <= 255 ? score / 255 : 1;
         cmpColorMap[i][j * 3 + 1] = 0 <= score && score <= 255 ? 1 : (255 - (score - 256)) / 255;
         cmpColorMap[i][j * 3 + 2] = 0;
-        refColorMap[i][j * 3 + 0] = 0;
-        refColorMap[i][j * 3 + 1] = 1;
-        refColorMap[i][j * 3 + 2] = 0;
+
+        refColorMap[i][j * 3 + 0] = threeColor.r;
+        refColorMap[i][j * 3 + 1] = threeColor.g;
+        refColorMap[i][j * 3 + 2] = threeColor.b;
       }
     }
 
     if (refFramesNum < cmpFramesNum) {
       for (const i of Array(bonesNum).keys()) {
         for (let j = refFramesNum; j < cmpFramesNum; j++) {
-          cmpColorMap[i][j * 3 + 0] = 1;
-          cmpColorMap[i][j * 3 + 1] = 1;
-          cmpColorMap[i][j * 3 + 2] = 1;
+          cmpColorMap[i][j * 3 + 0] = threeColor.r;
+          cmpColorMap[i][j * 3 + 1] = threeColor.g;
+          cmpColorMap[i][j * 3 + 2] = threeColor.b;
         }
       }
     }
@@ -61,9 +63,9 @@ class EDWSolver {
     if (cmpFramesNum < refFramesNum) {
       for (const i of Array(bonesNum).keys()) {
         for (let j = cmpFramesNum; j < refFramesNum; j++) {
-          refColorMap[i][j * 3 + 0] = 1;
-          refColorMap[i][j * 3 + 1] = 1;
-          refColorMap[i][j * 3 + 2] = 1;
+          refColorMap[i][j * 3 + 0] = threeColor.r;
+          refColorMap[i][j * 3 + 1] = threeColor.g;
+          refColorMap[i][j * 3 + 2] = threeColor.b;
         }
       }
     }
@@ -97,6 +99,8 @@ class DTWSolver {
 
     for (const i of Array(cmpFramesNum).keys()) refPath.push(posterizedPath[i][0]);
     for (const i of Array(cmpFramesNum).keys()) cmpPath.push(posterizedPath[i][1]);
+
+    console.log(refColorMap);
 
     ref.createAction(refColorMap, "dtw animation", refPath);
     cmp.createAction(cmpColorMap, "dtw animation", cmpPath);
@@ -191,6 +195,8 @@ class DTWSolver {
     const base = getArrayMax(diffPosMap) - getArrayMin(diffPosMap);
     const refColorMap = [];
     const cmpColorMap = [];
+    const goodColor = new THREE.Color(0x55d827);
+    const badColor = new THREE.Color(0xf04358);
 
     //for (const i of Array(bonesNum).keys()) {
     //refColorMap[i] = [];
@@ -224,13 +230,15 @@ class DTWSolver {
       for (const j of Array(framesNum).keys()) {
         const diff = diffPosMap[i][j] / base;
 
-        cmpColorMap[i][j * 3 + 0] = diff < threshold ? 0 : 1;
-        cmpColorMap[i][j * 3 + 1] = diff < threshold ? 1 : 0;
-        cmpColorMap[i][j * 3 + 2] = 0;
+        cmpColorMap[i][j * 3 + 0] = diff < threshold ? goodColor.r : badColor.r;
+        cmpColorMap[i][j * 3 + 1] = diff < threshold ? goodColor.g : badColor.g;
+        cmpColorMap[i][j * 3 + 2] = diff < threshold ? goodColor.b : badColor.b;
 
-        refColorMap[i][j * 3 + 0] = 1;
-        refColorMap[i][j * 3 + 1] = 1;
-        refColorMap[i][j * 3 + 2] = 1;
+        const threeColor = new THREE.Color(0x7192a5);
+
+        refColorMap[i][j * 3 + 0] = threeColor.r;
+        refColorMap[i][j * 3 + 1] = threeColor.g;
+        refColorMap[i][j * 3 + 2] = threeColor.b;
       }
     }
 

@@ -27,8 +27,22 @@ class Viewer extends THREE.WebGLRenderer {
     this.mouse = new THREE.Vector2();
     this.raycaster = new THREE.Raycaster();
     // model
-    const refModel = (this.refModel = new Model({ opacity: 0.45, pose: refPose, skin: undefined, racket: undefined }));
-    const cmpModel = (this.cmpModel = new Model({ opacity: 1, pose: cmpPose, skin: undefined, racket: undefined }));
+    const refModel = (this.refModel = new Model({
+      opacity: 0.45,
+      jointColor: 0x7192a5,
+      limbColor: 0x9dbaca,
+      pose: refPose,
+      skin: undefined,
+      racket: undefined,
+    }));
+    const cmpModel = (this.cmpModel = new Model({
+      opacity: 1,
+      jointColor: 0x7192a5,
+      limbColor: 0x7c8b8f,
+      pose: cmpPose,
+      skin: undefined,
+      racket: undefined,
+    }));
     // solver
     this.edwSolver = new EDWSolver({ ref: refModel, cmp: cmpModel });
     this.dtwSolver = new DTWSolver({ ref: refModel, cmp: cmpModel });
@@ -38,15 +52,15 @@ class Viewer extends THREE.WebGLRenderer {
     this.cmpScene = new Scene();
 
     this.container = container;
+    this.curSceneMode = 0;
+    this.curCameraMode = 0;
     this.curIntersected = null;
-    this.setScissorTest(true);
+
     this.autoClear = false;
+    this.setScissorTest(true);
 
     //test
     //
-
-    this.curSceneMode = 0;
-    this.curCameraMode = 0;
 
     const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444);
     hemiLight.position.set(0, 200, 0);
@@ -112,16 +126,24 @@ class Viewer extends THREE.WebGLRenderer {
       lapScene.visible = false;
     }
 
+    this.updateCamera(this.curCameraMode);
     this.updateRenderer(sceneMode, this.camera);
   }
 
   updateCamera(cameraMode) {
     const container = this.container;
+    const canvas = this.domElement;
 
     this.setSize(container.clientWidth, container.clientHeight);
+
+    const canvasWidth = canvas.clientWidth;
+    const canvasHeight = canvas.clientHeight;
+    const canvasAspect = canvas.clientWidth / canvas.clientHeight;
+    const sceneAspect = this.curSceneMode === 0 ? canvasAspect : canvasAspect / 2;
+
     this.curCameraMode = cameraMode;
 
-    this.camera.update(this.domElement, cameraMode);
+    this.camera.update(sceneAspect, cameraMode);
     this.orbit.update();
 
     this.updateRenderer(this.curSceneMode, this.camera);
@@ -188,7 +210,7 @@ class Camera extends THREE.PerspectiveCamera {
     //this.layers.toggle(1); // this
   }
 
-  update(canvas, mode) {
+  update(aspect, mode) {
     const position = this.position;
 
     if (mode === 1) position.set(0, 100, -300);
@@ -197,7 +219,7 @@ class Camera extends THREE.PerspectiveCamera {
     if (mode === 4) position.set(-300, 100, 0);
     if (mode === 5) position.set(0, 300, 0);
 
-    this.aspect = canvas.clientWidth / canvas.clientHeight;
+    this.aspect = aspect;
 
     this.updateProjectionMatrix();
   }
@@ -207,9 +229,7 @@ class Scene extends THREE.Scene {
   constructor() {
     super();
 
-    //this.background = new THREE.Color("grey");
-    this.background = new THREE.Color("black");
-    //this.background = new THREE.Color("white");
+    this.background = new THREE.Color(0xededed);
 
     this.add(new THREE.GridHelper(10000, 10));
   }
@@ -222,7 +242,7 @@ class Scene extends THREE.Scene {
 }
 
 class Model extends THREE.Group {
-  constructor({ opacity, pose, skin, racket }) {
+  constructor({ opacity, jointColor, limbColor, pose, skin, racket }) {
     super();
 
     const clip = pose.clip;
@@ -244,10 +264,10 @@ class Model extends THREE.Group {
     //this.skin = skin;
     this.clipBones = this.getBones(skeleton.bones[0].clone(), "clip");
     this.skeleton = skeleton;
-    this.jointHelper = new JointHelper({ bones: this.clipBones, clip: this.animations[0], opacity: opacity });
+    this.jointHelper = new JointHelper({ opacity: opacity, color: jointColor, bones: this.clipBones, clip: this.animations[0] });
     this.limbHelper = new LimbHelper(
       { geometry: new LineSegmentsGeometry(), material: new LineMaterial() },
-      { bones: skeleton.bones, opacity }
+      { opacity: opacity, color: limbColor, bones: skeleton.bones }
     );
 
     this.add(this.jointHelper);

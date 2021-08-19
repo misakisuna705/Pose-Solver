@@ -2,7 +2,7 @@ import * as THREE from "three/build/three.module.js";
 import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2";
 
 class JointHelper extends THREE.Group {
-  constructor({ bones, clip, opacity }) {
+  constructor({ opacity, color, bones, clip }) {
     super();
 
     const joints = (this.joints = []);
@@ -19,7 +19,10 @@ class JointHelper extends THREE.Group {
 
     const actions = (this.actions = []);
 
-    this.createAction(this.createColorsMap(1, 1, 1), "default jointsAnimation");
+    //test
+    const threeColor = new THREE.Color(color);
+
+    this.createAction(this.createColorsMap(threeColor.r, threeColor.g, threeColor.b), "default jointsAnimation");
 
     actions[0].play();
   }
@@ -112,9 +115,13 @@ class JointHelper extends THREE.Group {
           rotations.push(clipTracks[i * 2 + 1].values[path[j] * 4 + 2]);
           rotations.push(clipTracks[i * 2 + 1].values[path[j] * 4 + 3]);
 
-          colors[i].push(colorsMap[i][path[j] * 3 + 0]);
-          colors[i].push(colorsMap[i][path[j] * 3 + 1]);
-          colors[i].push(colorsMap[i][path[j] * 3 + 2]);
+          //colors[i].push(colorsMap[i][path[j] * 3 + 0]);
+          //colors[i].push(colorsMap[i][path[j] * 3 + 1]);
+          //colors[i].push(colorsMap[i][path[j] * 3 + 2]);
+
+          colors[i].push(colorsMap[i][j * 3 + 0]);
+          colors[i].push(colorsMap[i][j * 3 + 1]);
+          colors[i].push(colorsMap[i][j * 3 + 2]);
         }
 
         tracks[i * 3 + 0] = new THREE.VectorKeyframeTrack(joints[i].name + ".position", times, positions);
@@ -138,7 +145,7 @@ class JointHelper extends THREE.Group {
 }
 
 class LimbHelper extends LineSegments2 {
-  constructor({ geometry, material }, { bones, opacity }) {
+  constructor({ geometry, material }, { opacity, color, bones }) {
     super(geometry, material);
 
     const limbs = (this.limbs = []);
@@ -153,7 +160,7 @@ class LimbHelper extends LineSegments2 {
     }
 
     for (const i of Array(limbs.length).keys()) {
-      let color = undefined;
+      //let color = undefined;
 
       //if (i < 8) color = new THREE.Color("purple");
       //else if (i < 16) color = new THREE.Color("dodgerblue");
@@ -161,7 +168,7 @@ class LimbHelper extends LineSegments2 {
       //else if (i < 32) color = new THREE.Color("deepskyblue");
       //else color = new THREE.Color("magenta");
 
-      color = new THREE.Color(0x77898e);
+      color = new THREE.Color(color);
 
       colors.push(color.r, color.g, color.b);
 

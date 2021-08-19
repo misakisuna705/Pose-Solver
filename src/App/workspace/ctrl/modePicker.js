@@ -17,7 +17,6 @@ import BorderOuterIcon from "@material-ui/icons/BorderOuter";
 import BorderLeftIcon from "@material-ui/icons/BorderLeft";
 import BorderRightIcon from "@material-ui/icons/BorderRight";
 import BorderTopIcon from "@material-ui/icons/BorderTop";
-import BorderBottomIcon from "@material-ui/icons/BorderBottom";
 import CameraAltIcon from "@material-ui/icons/CameraAlt";
 import CollectionsIcon from "@material-ui/icons/Collections";
 import CompareIcon from "@material-ui/icons/Compare";
