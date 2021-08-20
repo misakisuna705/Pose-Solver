@@ -14,13 +14,11 @@ import Playback from "App/workspace/ctrl/playback.js";
 //import ButtonToggler from "App/workspace/ctrl/buttonToggler.js";
 
 //import COACH_SKELETON from "assets/bvh/data_3d1.bvh";
-import COACH_SKELETON from "assets/coach3/skeleton.bvh";
 //import PLAYER_SKELETON from "assets/bvh/data_3d2.bvh";
-//import PLAYER_SKELETON from "assets/coach2/skeleton.bvh";
-//import PLAYER_SKELETON from "assets/player/skeleton.bvh";
-//import PLAYER_SKELETON from "assets/player/User1Char00.bvh";
-//import PLAYER_SKELETON from "assets/player/User2Char00.bvh";
-import PLAYER_SKELETON from "assets/player/User3_Char00.bvh";
+import COACH_SKELETON from "assets/coach/skeleton.bvh";
+import PLAYER_SKELETON from "assets/player/skeleton1.bvh";
+//import PLAYER_SKELETON from "assets/player/skeleton2.bvh";
+//import PLAYER_SKELETON from "assets/player/skeleton3.bvh";
 //import COACH_SKIN from "assets/coach3/skin.fbx";
 //import PLAYER_SKIN from "assets/coach2/skin.fbx";
 //import COACH_RACKET from "assets/coach3/racket.fbx";

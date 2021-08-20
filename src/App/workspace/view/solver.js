@@ -78,20 +78,27 @@ class DTWSolver {
   constructor({ ref, cmp }) {
     const refFramesNum = ref.animations[0].tracks[0].times.length;
     const cmpFramesNum = cmp.animations[0].tracks[0].times.length;
+
     const refPosMap = ref.getPosMap(refFramesNum);
     const cmpPosMap = cmp.getPosMap(cmpFramesNum);
+
     const refPosSum = this.getPosSums(refFramesNum, refPosMap);
     const cmpPosSum = this.getPosSums(cmpFramesNum, cmpPosMap);
+
     const dtwMap = this.getDtwMap(refFramesNum, cmpFramesNum, refPosSum, cmpPosSum);
     const path = this.getDtwPath(refFramesNum, cmpFramesNum, dtwMap);
 
     const posterizedPath = this.getPosterizedPath(path);
-
     const dtwFramesNum = (this.dtwFramesNum = posterizedPath.length);
+
     const diffPosMap = getPosDiffMap(cmpPosMap, refPosMap, dtwFramesNum, posterizedPath);
     const { refColorMap, cmpColorMap } = this.getColorMap(diffPosMap);
-    const poseDiffArray = this.getPoseDiffArray(refPosSum, cmpPosSum, posterizedPath);
 
+
+    const posterizedRefPosSum = this.getposterizedPosSum(refPosMap, posterizedPath, 0);
+    const posterizedCmpPosSum = this.getposterizedPosSum(cmpPosMap, posterizedPath, 1);
+
+    const poseDiffArray = this.getPoseDiffArray(posterizedRefPosSum, posterizedCmpPosSum);
     this.poseColorArray = this.getPoseColorArray(poseDiffArray);
 
     const refPath = [];
@@ -99,8 +106,6 @@ class DTWSolver {
 
     for (const i of Array(cmpFramesNum).keys()) refPath.push(posterizedPath[i][0]);
     for (const i of Array(cmpFramesNum).keys()) cmpPath.push(posterizedPath[i][1]);
-
-    console.log(refColorMap);
 
     ref.createAction(refColorMap, "dtw animation", refPath);
     cmp.createAction(cmpColorMap, "dtw animation", cmpPath);
@@ -261,11 +266,27 @@ class DTWSolver {
     return posterizedPath;
   }
 
-  getPoseDiffArray(refPosSum, cmpPosSum, path) {
+  getposterizedPosSum(posMap, path, index) {
+    const bonesNum = posMap.length;
+    const framesNum = path.length;
+    const framesSum = [];
+
+    for (const i of Array(framesNum).keys()) {
+      for (const j of Array(bonesNum).keys()) {
+        framesSum[i] = new THREE.Vector3();
+
+        framesSum[i].add(posMap[j][path[i][index]]);
+      }
+    }
+
+    return framesSum;
+  }
+
+  getPoseDiffArray(refPosSum, cmpPosSum) {
     const framesNum = cmpPosSum.length;
     const poseDiffArray = [];
 
-    for (const i of Array(framesNum).keys()) poseDiffArray[i] = cmpPosSum[path[i][1]].distanceTo(refPosSum[path[i][0]]);
+    for (const i of Array(framesNum).keys()) poseDiffArray[i] = cmpPosSum[i].distanceTo(refPosSum[i]);
 
     return poseDiffArray;
   }
@@ -281,12 +302,16 @@ class DTWSolver {
     for (const element of poseDiffArray) min = element < min ? element : min;
 
     const base = max - min;
-    const threshold = 0.45;
+    const threshold = 0.58;
 
     for (const i of Array(num).keys())
       if (poseDiffArray[i] / base >= threshold)
         if (i === 0 || poseDiffArray[i + 1] / base < threshold || poseDiffArray[i - 1] / base < threshold || i + 1 === num)
           poseColorArray.push(i);
+
+    console.log(threshold * base);
+    console.log(poseColorArray);
+    console.log(poseDiffArray);
 
     return poseColorArray;
   }
