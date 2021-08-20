@@ -94,7 +94,6 @@ class DTWSolver {
     const diffPosMap = getPosDiffMap(cmpPosMap, refPosMap, dtwFramesNum, posterizedPath);
     const { refColorMap, cmpColorMap } = this.getColorMap(diffPosMap);
 
-
     const posterizedRefPosSum = this.getposterizedPosSum(refPosMap, posterizedPath, 0);
     const posterizedCmpPosSum = this.getposterizedPosSum(cmpPosMap, posterizedPath, 1);
 
@@ -120,9 +119,9 @@ class DTWSolver {
     const framesSum = [];
 
     for (const i of Array(framesNum).keys()) {
-      for (const j of Array(bonesNum).keys()) {
-        framesSum[i] = new THREE.Vector3();
+      framesSum[i] = new THREE.Vector3();
 
+      for (const j of Array(bonesNum).keys()) {
         framesSum[i].add(posMap[j][i]);
       }
     }
@@ -272,9 +271,9 @@ class DTWSolver {
     const framesSum = [];
 
     for (const i of Array(framesNum).keys()) {
-      for (const j of Array(bonesNum).keys()) {
-        framesSum[i] = new THREE.Vector3();
+      framesSum[i] = new THREE.Vector3();
 
+      for (const j of Array(bonesNum).keys()) {
         framesSum[i].add(posMap[j][path[i][index]]);
       }
     }
@@ -302,13 +301,19 @@ class DTWSolver {
     for (const element of poseDiffArray) min = element < min ? element : min;
 
     const base = max - min;
-    const threshold = 0.58;
+    const threshold = 0.45;
 
     for (const i of Array(num).keys())
-      if (poseDiffArray[i] / base >= threshold)
-        if (i === 0 || poseDiffArray[i + 1] / base < threshold || poseDiffArray[i - 1] / base < threshold || i + 1 === num)
+      if ((poseDiffArray[i] - min) / base >= threshold)
+        if (
+          i === 0 ||
+          (poseDiffArray[i + 1] - min) / base < threshold ||
+          (poseDiffArray[i - 1] - min) / base < threshold ||
+          i + 1 === num
+        )
           poseColorArray.push(i);
 
+    console.log(base);
     console.log(threshold * base);
     console.log(poseColorArray);
     console.log(poseDiffArray);
