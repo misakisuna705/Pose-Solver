@@ -15,7 +15,6 @@
         + [骨架呈現](#骨架呈現)
         + [操作界面](#操作界面)
 * [專案架構](#專案架構)
-    - [執行環境](#執行環境)
     - [安裝步驟](#安裝步驟)
     - [前端插件](#前端插件)
     - [檔案結構](#檔案結構)
@@ -31,6 +30,7 @@
 * [參考資料](#參考資料)
     - [3D 人體姿態估計](#3d-人體姿態估計)
     - [3D 動作姿態格式](#3d-動作姿態格式)
+    - [Three.js](#threejs)
 * [進度追蹤](#進度追蹤)
 
 <!-- vim-markdown-toc -->
@@ -51,7 +51,7 @@
 
 ### 遠期
 
--   [] 實現敵、球、拍、場等要素的視覺化，使其可以讓運動團隊進行戰術分析。
+-   [ ] 實現敵、球、拍、場等要素的視覺化，使其可以讓運動團隊進行戰術分析。
 
 ## 系統介紹
 
@@ -79,11 +79,6 @@
 
 ## 專案架構
 
-### 執行環境
-
--   node.js 17.0.1
--   yarn 1.22.17
-
 ### 安裝步驟
 
 ```bash=
@@ -91,8 +86,8 @@ git clone https://github.com/misakisuna705/Pose-Solver.git
 
 cd Pose_Solver/
 
+# node.js 17.0.1 / yarn 1.22.17
 yarn install
-
 yarn start
 ```
 
@@ -288,15 +283,19 @@ yarn start
 -   Three.js
 
     -   [ ] [3D 網站開發入門筆記](http://test.domojyun.net/MEMO/3D/threejs.html)
-    -   [ ] Manual
+    -   [ ] [DOC](https://threejs.org/docs/index.html#manual/en/introduction/Creating-a-scene)
+    -   [ ] [Manual](https://threejs.org/manual/#en/fundamentals)
         -   [Responsive Design](https://threejs.org/manual/#en/responsive)
         -   [Rendering on Demand](https://threejs.org/manual/#en/rendering-on-demand)
         -   [Multiple Canvases Multiple Scenes](https://threejs.org/manual/#en/multiple-scenes)
+    -   [ ] [How to organize your Three.js code in a cleaner way](https://pierfrancesco-soffritti.medium.com/how-to-organize-the-structure-of-a-three-js-project-77649f58fa3f)
+    -   [ ] [Promise loading with Three.js](https://itnext.io/promise-loading-with-three-js-78a6297652a5)
 
 -   React.js
 
     -   [ ] xx
     -   [ ] Create React App
+    -   [ ] [How to use plain Three.js in your React apps](https://itnext.io/how-to-use-plain-three-js-in-your-react-apps-417a79d926e0)
 
 -   Material-UI
 
@@ -314,6 +313,12 @@ yarn start
 
 -   [List of motion and gesture file formats](https://en.wikipedia.org/wiki/List_of_motion_and_gesture_file_formats)
 -   [Biovision BVH](https://research.cs.wisc.edu/graphics/Courses/cs-838-1999/Jeff/BVH.html)
+
+### Three.js
+
+-   [demo example](https://threejs.org/examples/#webgl_animation_keyframes)
+-   [demo code](https://github.com/mrdoob/three.js/tree/dev/examples)
+-   [API](https://threejs.org/docs/index.html#api/en/animation/AnimationAction)
 
 ## 進度追蹤
 
