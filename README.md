@@ -16,6 +16,8 @@
         + [操作界面](#操作界面)
 * [專案架構](#專案架構)
     - [執行環境](#執行環境)
+    - [安裝步驟](#安裝步驟)
+    - [前端插件](#前端插件)
     - [檔案結構](#檔案結構)
     - [模組列表（API）](#模組列表api)
 * [當前狀態](#當前狀態)
@@ -49,7 +51,7 @@
 
 ### 遠期
 
--   [ ] 戰術分析
+-   [] 實現敵、球、拍、場等要素的視覺化，使其可以讓運動團隊進行戰術分析。
 
 ## 系統介紹
 
@@ -79,9 +81,10 @@
 
 ### 執行環境
 
--   使用工具
+-   node.js 17.0.1
+-   yarn 1.22.17
 
--   安裝步驟
+### 安裝步驟
 
 ```bash=
 git clone https://github.com/misakisuna705/Pose-Solver.git
@@ -93,23 +96,49 @@ yarn install
 yarn start
 ```
 
+### 前端插件
+
+-   project
+
+    -   Create-React-App
+        -   react 16.13.1
+        -   react-dom 16.13.1
+        -   react-scripts 3.4.1
+
+-   package
+
+    -   Three.js
+        -   three 0.118.3
+    -   Ant Design
+        -   antd 4.16.7
+        -   ant-design/icons 4.6.2
+    -   Bootstrap
+        -   bootstrap 4.6.0
+        -   react-bootstrap 1.6.1
+    -   Material-UI
+        -   @material-ui/core 4.12.3
+        -   @material-ui/icons 4.11.2
+        -   @material-ui/lab 4.0.0-alpha.60
+    -   Other
+        -   rc-slider 9.7.2
+
 ### 檔案結構
 
 ```bash=
 ❯ tree
 .
-├── App.js # React.js
-├── layout # for the compatibility of full multi-page app
-├    ├── header.js # navbar for page change & setting
-├    ├── content.js # entry for input from backend
-├    └── footer.js # copyright declaration
+├── App.js # 使用 Creat-React-App 創建的 React.js 環境
+├── layout
+├    ├── header.js
+├    ├── content.js # workspace 的入口點，用以輸入後端資料庫的參數
+├    └── footer.js
 └── workspace
-    ├── workspace.js # control parameter declaration
-    ├── view # Three.js
-    ├   ├── viewer.js # renderer、scene、camera、model
-    ├   ├── solver.js # dtw、MPJPE
-    ├   └── helper.js # joint、bone
-    └── ctrl # Material-UI
+    ├── workspace.js # 存放控制參數與函數，使其在 view 和 ctrl 間溝通
+    ├── view # 使用 Three.js 創建的視覺化環境
+    ├   ├── viewer.js # 三維空間的Scene Graph 階層結構，包含 renderer、scene、camera、model 等等
+    ├   ├── solver.js # 姿態分析比對，使用 DTW 演算法同步動畫，使用 MPJPE 估計方法評估姿態正確性
+    ├   └── helper.js # 視覺化輔助物件joint、bone
+    └── ctrl # 使用 Material-UI 創建的控制環境
         ├── modePicker.js # left panel
         ├── playback.js # down panel
         ├── timeSlice.js # right panel
@@ -245,19 +274,25 @@ yarn start
 ## 預備知識（prerequisite）
 
 -   編程環境
+
     -   [x] VS Code
     -   [x] git
     -   [ ] Yarn
+
 -   計算機圖學
+
     -   [ ] Transformation（video / ppt）
     -   [ ] Lighting（ppt）
     -   [ ] Texture（ppt）
+
 -   Three.js
+
     -   [ ] [3D 網站開發入門筆記](http://test.domojyun.net/MEMO/3D/threejs.html)
     -   [ ] Manual
         -   [Responsive Design](https://threejs.org/manual/#en/responsive)
         -   [Rendering on Demand](https://threejs.org/manual/#en/rendering-on-demand)
         -   [Multiple Canvases Multiple Scenes](https://threejs.org/manual/#en/multiple-scenes)
+
 -   React.js
 
     -   [ ] xx
