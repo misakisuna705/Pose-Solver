@@ -100,6 +100,8 @@ class DTWSolver {
     const poseDiffArray = this.getPoseDiffArray(posterizedRefPosSum, posterizedCmpPosSum);
     this.poseColorArray = this.getPoseColorArray(poseDiffArray);
 
+    this.test(dtwMap, posterizedPath, diffPosMap, poseDiffArray, posterizedRefPosSum, posterizedCmpPosSum, path);
+
     const refPath = [];
     const cmpPath = [];
 
@@ -313,12 +315,65 @@ class DTWSolver {
         )
           poseColorArray.push(i);
 
-    console.log(base);
-    console.log(threshold * base);
-    console.log(poseColorArray);
-    console.log(poseDiffArray);
+    //console.log(base);
+    //console.log(threshold * base);
+    //console.log(poseColorArray);
+    //console.log(poseDiffArray);
 
     return poseColorArray;
+  }
+
+  test(dtwMap, posterizedPath, diffPosMap, poseDiffArray, posterizedRefPosSum, posterizedCmpPosSum, path) {
+    //console.log(path.length);
+    console.log("dtw Total: " + dtwMap[dtwMap.length - 1][dtwMap[0].length - 1]);
+    //console.log(posterizedPath);
+    //console.log(diffPosMap);
+    console.log("dtw PerPathUnit: " + dtwMap[dtwMap.length - 1][dtwMap[0].length - 1] / path.length);
+    console.log("dtw PerPathUnit PerJoint" + dtwMap[dtwMap.length - 1][dtwMap[0].length - 1] / path.length / diffPosMap.length);
+
+    const sumPerFrame = [];
+    const avgSumPerFrame = [];
+    const avgPoseDiffArray = [];
+
+    for (let j = 0; j < diffPosMap[0].length; j++) {
+      sumPerFrame[j] = 0;
+
+      for (let i = 0; i < diffPosMap.length; i++) {
+        if (diffPosMap[i][j] === NaN) {
+          console.log(i, j);
+        }
+
+        sumPerFrame[j] += diffPosMap[i][j];
+      }
+
+      avgSumPerFrame[j] = sumPerFrame[j] / diffPosMap.length;
+    }
+
+    //console.log(sumPerFrame);
+
+    for (let i = 0; i < poseDiffArray.length; i++) {
+      avgPoseDiffArray[i] = poseDiffArray[i] / diffPosMap.length;
+    }
+
+    //console.log(posterizedRefPosSum[0]);
+    //console.log(posterizedCmpPosSum[0]);
+    //console.log(posterizedCmpPosSum[0].distanceTo(posterizedRefPosSum[0]));
+
+    let mpjpe = 0;
+
+    for (let i = 0; i < avgSumPerFrame.length; i++) {
+      mpjpe += avgSumPerFrame[i];
+    }
+
+    mpjpe = mpjpe / avgSumPerFrame.length;
+
+    //console.log(poseDiffArray);
+    console.log("mpjpe Sum PerFrame: ");
+    console.log(sumPerFrame);
+    //console.log(avgPoseDiffArray);
+    console.log("mpjpe PerFrame: ");
+    console.log(avgSumPerFrame);
+    console.log("mpjpe: " + mpjpe * 10);
   }
 }
 

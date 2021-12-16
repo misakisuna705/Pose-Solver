@@ -114,21 +114,6 @@ export default withStyles(styles, { withTheme: true })(
                   <DeleteIcon />
                 </IconButton>
 
-                <IconButton onClick={(event) => {}}>
-                  <EditIcon />
-                </IconButton>
-
-                <IconButton onClick={(event) => {}}>
-                  <DoneIcon />
-                </IconButton>
-
-                <IconButton onClick={(event) => {}}>
-                  <MicIcon />
-                </IconButton>
-
-                <IconButton onClick={(event) => {}}>
-                  <StopIcon />
-                </IconButton>
               </AccordionDetails>
             </Accordion>
           ))}
@@ -201,3 +186,20 @@ export default withStyles(styles, { withTheme: true })(
     }
   }
 );
+
+
+                //<IconButton onClick={(event) => {}}>
+                  //<EditIcon />
+                //</IconButton>
+
+                //<IconButton onClick={(event) => {}}>
+                  //<DoneIcon />
+                //</IconButton>
+
+                //<IconButton onClick={(event) => {}}>
+                  //<MicIcon />
+                //</IconButton>
+
+                //<IconButton onClick={(event) => {}}>
+                  //<StopIcon />
+                //</IconButton>

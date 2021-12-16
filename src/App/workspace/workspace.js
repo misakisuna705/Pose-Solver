@@ -16,7 +16,10 @@ import Playback from "App/workspace/ctrl/playback.js";
 //import COACH_SKELETON from "assets/bvh/data_3d1.bvh";
 //import PLAYER_SKELETON from "assets/bvh/data_3d2.bvh";
 import COACH_SKELETON from "assets/coach/skeleton.bvh";
-import PLAYER_SKELETON from "assets/player/skeleton1.bvh";
+import PLAYER_SKELETON from "assets/player/0821/2/pretest/user_second_test1_Char00.bvh";
+
+//import PLAYER_SKELETON from "assets/player/skeleton1.bvh";
+//import PLAYER_SKELETON from "assets/coach/skeleton.bvh";
 //import PLAYER_SKELETON from "assets/player/skeleton2.bvh";
 //import PLAYER_SKELETON from "assets/player/skeleton3.bvh";
 //import COACH_SKIN from "assets/coach3/skin.fbx";

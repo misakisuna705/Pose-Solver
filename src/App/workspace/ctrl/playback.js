@@ -52,7 +52,7 @@ export default class Playback extends Component {
           </Grid>
 
           <Grid item xs={1}>
-            <Typography>回饋</Typography>
+            <Typography>AddToList</Typography>
           </Grid>
         </Grid>
 
@@ -64,7 +64,7 @@ export default class Playback extends Component {
           </Grid>
 
           <Grid item xs={2}>
-            <Typography>姿勢正確率低</Typography>
+            <Typography>Low Correct Rate</Typography>
           </Grid>
 
           <Grid item xs={7}>
