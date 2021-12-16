@@ -18,7 +18,7 @@
     - [安裝步驟](#安裝步驟)
     - [前端插件](#前端插件)
     - [檔案結構](#檔案結構)
-    - [模組列表（API）](#模組列表api)
+    - [模組列表](#模組列表)
 * [當前狀態](#當前狀態)
     - [前端](#前端)
 * [里程設定（checkpoint）](#里程設定checkpoint)
@@ -26,7 +26,7 @@
     - [視覺呈現](#視覺呈現)
     - [界面控制](#界面控制)
     - [回饋分享](#回饋分享)
-* [預備知識（prerequisite）](#預備知識prerequisite)
+* [預備知識](#預備知識)
 * [參考資料](#參考資料)
     - [3D 人體姿態估計](#3d-人體姿態估計)
     - [3D 動作姿態格式](#3d-動作姿態格式)
@@ -140,7 +140,7 @@ yarn start
         └── buttonToggler.js # top panel
 ```
 
-### 模組列表（API）
+### 模組列表
 
 ## 當前狀態
 
@@ -266,7 +266,7 @@ yarn start
 
 ### 回饋分享
 
-## 預備知識（prerequisite）
+## 預備知識
 
 -   編程環境
 
@@ -288,6 +288,7 @@ yarn start
         -   [Responsive Design](https://threejs.org/manual/#en/responsive)
         -   [Rendering on Demand](https://threejs.org/manual/#en/rendering-on-demand)
         -   [Multiple Canvases Multiple Scenes](https://threejs.org/manual/#en/multiple-scenes)
+    -   [ ] [KeyframeTrack 幀動畫](https://blog.csdn.net/ithanmang/article/details/84062933)
     -   [ ] [How to organize your Three.js code in a cleaner way](https://pierfrancesco-soffritti.medium.com/how-to-organize-the-structure-of-a-three-js-project-77649f58fa3f)
     -   [ ] [Promise loading with Three.js](https://itnext.io/promise-loading-with-three-js-78a6297652a5)
 
