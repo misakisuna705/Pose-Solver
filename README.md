@@ -321,12 +321,15 @@ yarn start
 
 -   [List of motion and gesture file formats](https://en.wikipedia.org/wiki/List_of_motion_and_gesture_file_formats)
 -   [Biovision BVH](https://research.cs.wisc.edu/graphics/Courses/cs-838-1999/Jeff/BVH.html)
+-   [BVH motion capture data](https://www.cs.cityu.edu.hk/~howard/Teaching/CS4185-5185-2007-SemA/Group12/BVH.html)
 
 ### Three.js
 
 -   [demo example](https://threejs.org/examples/#webgl_animation_keyframes)
 -   [demo code](https://github.com/mrdoob/three.js/tree/dev/examples)
 -   [API](https://threejs.org/docs/index.html#api/en/animation/AnimationAction)
+-   [three.js editor（for FBX test）](https://threejs.org/editor/)
+-   [BVH player（for BVH test）](http://lo-th.github.io/olympe/BVH_player.html)
 
 ### React.js
 
