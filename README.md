@@ -274,11 +274,11 @@ yarn start
 
     -   [x] VS Code
     -   [x] git
-    -   [ ] Yarn
+    -   [x] Yarn
 
 -   計算機圖學
 
-    -   [ ] Transformation（video / ppt）
+    -   [X] Transformation（video / ppt）
     -   [ ] Lighting（ppt）
     -   [ ] Texture（ppt）
 
@@ -340,5 +340,5 @@ yarn start
 ## 進度追蹤
 
 -   [x] 2021.12.17：能夠執行 Pose_Solver 專案
--   [ ] 2021.12.24：學習完 transformation 知識
--   [ ] 2021.12.31：
+-   [x] 2021.12.24：學習完 transformation 知識
+-   [x] 2021.12.31：開始看 three.js 資料
