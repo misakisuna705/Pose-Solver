@@ -2,6 +2,14 @@ import * as THREE from "three/build/three.module.js";
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+
+import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
+
+import jpg from "assets/img/tri_pattern.jpg";
+
+import { OutlinePass } from "App/api/OutlinePass.js";
 
 //import { XNectLoader } from "App/workspace/loader";
 import { EDWSolver, DTWSolver } from "App/workspace/view/solver";
@@ -9,10 +17,9 @@ import { JointHelper, LimbHelper } from "App/workspace/view/helper";
 
 // syncWith
 
-class Viewer extends THREE.WebGLRenderer {
+//class Viewer extends THREE.WebGLRenderer {
+class Viewer {
   constructor({ container, raws }) {
-    super();
-
     // raws
     const refPose = raws[0];
     const cmpPose = raws[1];
@@ -20,10 +27,12 @@ class Viewer extends THREE.WebGLRenderer {
     //const cmpSkin = raws[3];
     //const refRacket = raws[4];
     //const cmpRacket = raw[5];
+    // renderer
+    const renderer = (this.renderer = new Renderer());
     // camera
     const camera = (this.camera = new Camera({ fov: 60, aspect: 640 / 360, near: 0.1, far: 50000 }));
     // orbit
-    const orbit = (this.orbit = new OrbitControls(camera, this.domElement));
+    const orbit = (this.orbit = new OrbitControls(camera, renderer.domElement));
     this.mouse = new THREE.Vector2();
     this.raycaster = new THREE.Raycaster();
     // model
@@ -50,14 +59,32 @@ class Viewer extends THREE.WebGLRenderer {
     this.lapScene = new Scene();
     const refScene = (this.refScene = new Scene());
     this.cmpScene = new Scene();
+    // composer
+    this.composer = new EffectComposer(renderer);
+    //this.outlinePass = new OutlinePass();
+    this.outlinePass = new OutlinePass(new THREE.Vector2(window.innerWidth, window.innerHeight), this.lapScene, this.camera);
+    this.outlinePass.edgeStrength = 10;
+    this.renderPass = new RenderPass();
+
+    //this.composer.addPass(this.outlinePass);
+    this.composer.addPass(this.renderPass);
+
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.load(jpg, (texture) => {
+      this.outlinePass.patternTexture = texture;
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+
+      this.composer.addPass(this.outlinePass);
+    });
 
     this.container = container;
     this.curSceneMode = 0;
     this.curCameraMode = 0;
     this.curIntersected = null;
 
-    this.autoClear = false;
-    this.setScissorTest(true);
+    //this.autoClear = false;
+    //this.setScissorTest(true);
 
     //test
     //
@@ -77,6 +104,7 @@ class Viewer extends THREE.WebGLRenderer {
 
     orbit.addEventListener("change", () => this.updateRenderer(this.curSceneMode, camera), false);
     window.addEventListener("resize", () => this.updateCamera(this.curCameraMode), false);
+    this.renderer.domElement.addEventListener("pointermove", (event) => this.updateIntersected(event, camera), false);
     //container.addEventListener(
     //"mousemove",
     //(event) =>
@@ -110,7 +138,8 @@ class Viewer extends THREE.WebGLRenderer {
     const refScene = this.refScene;
     const cmpScene = this.cmpScene;
 
-    this.setSize(container.clientWidth, container.clientHeight);
+    this.renderer.setSize(container.clientWidth, container.clientHeight);
+    this.composer.setSize(container.clientWidth, container.clientHeight);
     this.curSceneMode = sceneMode;
 
     if (sceneMode === 0) {
@@ -132,9 +161,10 @@ class Viewer extends THREE.WebGLRenderer {
 
   updateCamera(cameraMode) {
     const container = this.container;
-    const canvas = this.domElement;
+    const canvas = this.renderer.domElement;
 
-    this.setSize(container.clientWidth, container.clientHeight);
+    this.renderer.setSize(container.clientWidth, container.clientHeight);
+    this.composer.setSize(container.clientWidth, container.clientHeight);
 
     const canvasWidth = canvas.clientWidth;
     const canvasHeight = canvas.clientHeight;
@@ -152,7 +182,7 @@ class Viewer extends THREE.WebGLRenderer {
   updateIntersected(event, camera) {
     const mouse = this.mouse;
     const raycaster = this.raycaster;
-    const { left, right, top, bottom, width, height } = this.domElement.getBoundingClientRect();
+    const { left, right, top, bottom, width, height } = this.renderer.domElement.getBoundingClientRect();
 
     mouse.x = event ? ((event.clientX - left) / (right - left)) * 2 - 1 : -1;
     mouse.y = event ? -((event.clientY - top) / (bottom - top)) * 2 + 1 : -1;
@@ -161,39 +191,69 @@ class Viewer extends THREE.WebGLRenderer {
 
     const intersects = raycaster.intersectObjects(this.cmpModel.jointHelper.joints);
 
+    console.log(intersects);
+
     if (intersects.length > 0) {
-      if (this.curIntersected !== intersects[0].object) {
-        if (this.curIntersected) this.curIntersected.material.color.setHex(this.curIntersected.currentHex);
+      const selectedObject = intersects[0].object;
 
-        this.curIntersected = intersects[0].object;
-        this.curIntersected.currentHex = this.curIntersected.material.color.getHex();
-        this.curIntersected.material.color.setHex(0xff0000);
-      }
-    } else {
-      if (this.curIntersected) this.curIntersected.material.color.setHex(this.curIntersected.currentHex);
-
-      this.curIntersected = null;
+      this.outlinePass.selectedObjects = [selectedObject];
     }
+
+    this.updateRenderer(this.curSceneMode, this.camera);
+
+    //if (intersects.length > 0) {
+    //if (this.curIntersected !== intersects[0].object) {
+    //if (this.curIntersected) this.curIntersected.material.color.setHex(this.curIntersected.currentHex);
+
+    //this.curIntersected = intersects[0].object;
+    //this.curIntersected.currentHex = this.curIntersected.material.color.getHex();
+    //this.curIntersected.material.color.setHex(0xff0000);
+
+    //console.log("a");
+    //}
+    //} else {
+    //if (this.curIntersected) this.curIntersected.material.color.setHex(this.curIntersected.currentHex);
+
+    //this.curIntersected = null;
+    //}
   }
 
   updateRenderer(sceneMode, camera) {
-    const canvas = this.domElement;
+    const canvas = this.renderer.domElement;
     const width = canvas.width;
     const height = canvas.height;
 
     if (sceneMode === 0) {
-      this.updateViewport(this.lapScene, camera, 0, width, height);
+      this.renderer.update(0, width, height);
+      this.updateComposer(this.lapScene, camera);
     } else if (sceneMode === 1) {
-      this.updateViewport(this.refScene, camera, 0, width / 2, height);
-      this.updateViewport(this.cmpScene, camera, 0 + width / 2, width / 2, height);
+      this.renderer.update(0, width / 2, height);
+      this.updateComposer(this.refScene, camera);
+
+      this.renderer.update(0 + width / 2, width / 2, height);
+      this.updateComposer(this.cmpScene, camera);
     }
   }
 
-  updateViewport(scene, camera, left, width, height) {
+  updateComposer(scene, camera) {
+    this.renderPass.scene = scene;
+    this.renderPass.camera = camera;
+
+    this.composer.render();
+  }
+}
+
+class Renderer extends THREE.WebGLRenderer {
+  constructor() {
+    super();
+
+    this.autoClear = false;
+    this.setScissorTest(true);
+  }
+
+  update(left, width, height) {
     this.setScissor(left, 0, width, height);
     this.setViewport(left, 0, width, height);
-
-    this.render(scene, camera);
   }
 }
 
@@ -229,7 +289,8 @@ class Scene extends THREE.Scene {
   constructor() {
     super();
 
-    this.background = new THREE.Color(0xededed);
+    //this.background = new THREE.Color(0xededed);
+    this.background = new THREE.Color("black");
 
     this.add(new THREE.GridHelper(10000, 10));
   }
@@ -265,10 +326,7 @@ class Model extends THREE.Group {
     this.clipBones = this.getBones(skeleton.bones[0].clone(), "clip");
     this.skeleton = skeleton;
     this.jointHelper = new JointHelper({ opacity: opacity, color: jointColor, bones: this.clipBones, clip: this.animations[0] });
-    this.limbHelper = new LimbHelper(
-      { geometry: new LineSegmentsGeometry(), material: new LineMaterial() },
-      { opacity: opacity, color: limbColor, bones: skeleton.bones }
-    );
+    this.limbHelper = new LimbHelper({ geometry: new LineSegmentsGeometry(), material: new LineMaterial() }, { opacity: opacity, color: limbColor, bones: skeleton.bones });
 
     this.add(this.jointHelper);
     this.add(this.limbHelper);
@@ -366,21 +424,10 @@ class Model extends THREE.Group {
         const vectorKeyframeTrack = clip.tracks[j * 2 + 0];
         const quaternionKeyframeTrack = clip.tracks[j * 2 + 1];
 
-        bufBones[j].position.copy(
-          new THREE.Vector3(
-            vectorKeyframeTrack.values[i * 3 + 0],
-            vectorKeyframeTrack.values[i * 3 + 1],
-            vectorKeyframeTrack.values[i * 3 + 2]
-          )
-        );
+        bufBones[j].position.copy(new THREE.Vector3(vectorKeyframeTrack.values[i * 3 + 0], vectorKeyframeTrack.values[i * 3 + 1], vectorKeyframeTrack.values[i * 3 + 2]));
 
         bufBones[j].setRotationFromQuaternion(
-          new THREE.Quaternion(
-            quaternionKeyframeTrack.values[i * 4 + 0],
-            quaternionKeyframeTrack.values[i * 4 + 1],
-            quaternionKeyframeTrack.values[i * 4 + 2],
-            quaternionKeyframeTrack.values[i * 4 + 3]
-          )
+          new THREE.Quaternion(quaternionKeyframeTrack.values[i * 4 + 0], quaternionKeyframeTrack.values[i * 4 + 1], quaternionKeyframeTrack.values[i * 4 + 2], quaternionKeyframeTrack.values[i * 4 + 3])
         );
       }
 
@@ -442,11 +489,7 @@ class Model extends THREE.Group {
     } else {
       for (const i of Array(bonesNum).keys()) {
         tracks[i * 2 + 0] = new THREE.VectorKeyframeTrack(bones[i].name + ".position", clipTimes, clipTracks[i * 2 + 0].values);
-        tracks[i * 2 + 1] = new THREE.QuaternionKeyframeTrack(
-          bones[i].name + ".quaternion",
-          clipTimes,
-          clipTracks[i * 2 + 1].values
-        );
+        tracks[i * 2 + 1] = new THREE.QuaternionKeyframeTrack(bones[i].name + ".quaternion", clipTimes, clipTracks[i * 2 + 1].values);
       }
     }
 

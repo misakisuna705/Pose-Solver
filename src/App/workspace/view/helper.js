@@ -11,6 +11,9 @@ class JointHelper extends THREE.Group {
     for (const bone of bones) joints.push(this.createJoint(geometry, bone, opacity));
 
     this.createJointTree(bones[0], joints[0]);
+
+    //for (const joint of joints) this.add(joint);
+
     this.add(joints[0]);
 
     this.clip = clip;
