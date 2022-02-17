@@ -1,4 +1,5 @@
 import * as THREE from "three/build/three.module.js";
+import { CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2";
 
 class JointHelper extends THREE.Group {
@@ -6,13 +7,13 @@ class JointHelper extends THREE.Group {
     super();
 
     const joints = (this.joints = []);
-    const geometry = new THREE.SphereBufferGeometry(2);
+    const geometry = new THREE.SphereBufferGeometry(8);
 
     for (const bone of bones) joints.push(this.createJoint(geometry, bone, opacity));
 
-    this.createJointTree(bones[0], joints[0]);
+    //for (const joint of joints) for if (child instanceof CSS2DObject) child.visible = false;
 
-    //for (const joint of joints) this.add(joint);
+    this.createJointTree(bones[0], joints[0]);
 
     this.add(joints[0]);
 
@@ -48,6 +49,16 @@ class JointHelper extends THREE.Group {
 
     joint.name = bone.name;
 
+    const jointDiv = document.createElement("div");
+    jointDiv.className = "label";
+    jointDiv.textContent = bone.name;
+    jointDiv.style.marginTop = "-1em";
+
+    const jointLabel = new CSS2DObject(jointDiv);
+    jointLabel.position.set(0, 1, 0);
+    //jointLabel.visible = false;
+    joint.add(jointLabel);
+
     return joint;
   }
 
@@ -55,9 +66,7 @@ class JointHelper extends THREE.Group {
     const boneChildren = bone.children;
     const joints = this.joints;
 
-    for (const boneChild of boneChildren)
-      for (const jointChild of joints)
-        if (boneChild.name === jointChild.name) joint.add(this.createJointTree(boneChild, jointChild));
+    for (const boneChild of boneChildren) for (const jointChild of joints) if (boneChild.name === jointChild.name) joint.add(this.createJointTree(boneChild, jointChild));
 
     return joint;
   }
@@ -134,11 +143,7 @@ class JointHelper extends THREE.Group {
     } else {
       for (const i of Array(jointsNum).keys()) {
         tracks[i * 3 + 0] = new THREE.VectorKeyframeTrack(joints[i].name + ".position", clipTimes, clipTracks[i * 2 + 0].values);
-        tracks[i * 3 + 1] = new THREE.QuaternionKeyframeTrack(
-          joints[i].name + ".quaternion",
-          clipTimes,
-          clipTracks[i * 2 + 1].values
-        );
+        tracks[i * 3 + 1] = new THREE.QuaternionKeyframeTrack(joints[i].name + ".quaternion", clipTimes, clipTracks[i * 2 + 1].values);
         tracks[i * 3 + 2] = new THREE.ColorKeyframeTrack(joints[i].name + ".material.color", clipTimes, colorsMap[i]);
       }
     }

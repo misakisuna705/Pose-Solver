@@ -118,6 +118,7 @@ export default withStyles(styles, { withTheme: true })(
       Promise.all(rawsLoaded).then((raws) => {
         const viewer = (this.viewer = new Viewer({ container: this.element, raws: raws }));
 
+        this.element.appendChild(viewer.labelRenderer.domElement);
         this.element.appendChild(viewer.renderer.domElement);
 
         viewer.init(this.state.playback.curFrame, this.state.mode.sceneMode, this.state.mode.cameraMode);

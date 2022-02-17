@@ -1,19 +1,15 @@
 import * as THREE from "three/build/three.module.js";
+import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 
-import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
-
-import jpg from "assets/img/tri_pattern.jpg";
-
 import { OutlinePass } from "App/api/OutlinePass.js";
-
-//import { XNectLoader } from "App/workspace/loader";
 import { EDWSolver, DTWSolver } from "App/workspace/view/solver";
 import { JointHelper, LimbHelper } from "App/workspace/view/helper";
+//import { XNectLoader } from "App/workspace/loader";
 
 // syncWith
 
@@ -29,10 +25,17 @@ class Viewer {
     //const cmpRacket = raw[5];
     // renderer
     const renderer = (this.renderer = new Renderer());
+    // labelRenderer
+    this.labelRenderer = new CSS2DRenderer();
+    this.labelRenderer.domElement.style.position = "absolute";
+    this.labelRenderer.domElement.style.top = "0px";
     // camera
-    const camera = (this.camera = new Camera({ fov: 60, aspect: 640 / 360, near: 0.1, far: 50000 }));
+    const camera = (this.camera = new Camera({}));
     // orbit
-    const orbit = (this.orbit = new OrbitControls(camera, renderer.domElement));
+    const orbit = (this.orbit = new OrbitControls(camera, this.labelRenderer.domElement));
+    orbit.maxDistance = 500;
+    orbit.minDistance = 200;
+
     this.mouse = new THREE.Vector2();
     this.raycaster = new THREE.Raycaster();
     // model
@@ -61,34 +64,20 @@ class Viewer {
     this.cmpScene = new Scene();
     // composer
     this.composer = new EffectComposer(renderer);
-    //this.outlinePass = new OutlinePass();
     this.outlinePass = new OutlinePass(new THREE.Vector2(window.innerWidth, window.innerHeight), this.lapScene, this.camera);
     this.outlinePass.edgeStrength = 10;
     this.renderPass = new RenderPass();
 
-    //this.composer.addPass(this.outlinePass);
+    // Do not change these two addPasses order!
     this.composer.addPass(this.renderPass);
-
-    const textureLoader = new THREE.TextureLoader();
-    textureLoader.load(jpg, (texture) => {
-      this.outlinePass.patternTexture = texture;
-      texture.wrapS = THREE.RepeatWrapping;
-      texture.wrapT = THREE.RepeatWrapping;
-
-      this.composer.addPass(this.outlinePass);
-    });
+    this.composer.addPass(this.outlinePass);
 
     this.container = container;
     this.curSceneMode = 0;
     this.curCameraMode = 0;
     this.curIntersected = null;
 
-    //this.autoClear = false;
-    //this.setScissorTest(true);
-
     //test
-    //
-
     const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444);
     hemiLight.position.set(0, 200, 0);
     refScene.add(hemiLight);
@@ -104,13 +93,7 @@ class Viewer {
 
     orbit.addEventListener("change", () => this.updateRenderer(this.curSceneMode, camera), false);
     window.addEventListener("resize", () => this.updateCamera(this.curCameraMode), false);
-    this.renderer.domElement.addEventListener("pointermove", (event) => this.updateIntersected(event, camera), false);
-    //container.addEventListener(
-    //"mousemove",
-    //(event) =>
-    //this.update(this.curFrame, this.getMode(sceneConfs), this.getMode(cameraConfs), undefined, undefined, event),
-    //false
-    //);
+    container.addEventListener("pointermove", (event) => this.updateIntersected(event, camera), false);
   }
 
   init(frame, sceneMode, cameraMode, event) {
@@ -139,6 +122,7 @@ class Viewer {
     const cmpScene = this.cmpScene;
 
     this.renderer.setSize(container.clientWidth, container.clientHeight);
+    this.labelRenderer.setSize(container.clientWidth, container.clientHeight);
     this.composer.setSize(container.clientWidth, container.clientHeight);
     this.curSceneMode = sceneMode;
 
@@ -164,6 +148,7 @@ class Viewer {
     const canvas = this.renderer.domElement;
 
     this.renderer.setSize(container.clientWidth, container.clientHeight);
+    this.labelRenderer.setSize(container.clientWidth, container.clientHeight);
     this.composer.setSize(container.clientWidth, container.clientHeight);
 
     const canvasWidth = canvas.clientWidth;
@@ -191,10 +176,12 @@ class Viewer {
 
     const intersects = raycaster.intersectObjects(this.cmpModel.jointHelper.joints);
 
-    console.log(intersects);
-
     if (intersects.length > 0) {
       const selectedObject = intersects[0].object;
+
+      //console.log(selectedObject.children);
+
+      for (const child of selectedObject.children) if (child instanceof CSS2DObject) child.visible = false;
 
       this.outlinePass.selectedObjects = [selectedObject];
     }
@@ -240,6 +227,7 @@ class Viewer {
     this.renderPass.camera = camera;
 
     this.composer.render();
+    this.labelRenderer.render(scene, camera);
   }
 }
 
@@ -290,9 +278,9 @@ class Scene extends THREE.Scene {
     super();
 
     //this.background = new THREE.Color(0xededed);
-    this.background = new THREE.Color("black");
+    this.background = new THREE.Color("blue");
 
-    this.add(new THREE.GridHelper(10000, 10));
+    this.add(new THREE.GridHelper(1000, 10));
   }
 
   update(model) {
